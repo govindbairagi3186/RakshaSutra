@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "RakshaSutra",
+    "slug": "rakshasutra",
+    "sdkVersion": "48.0.0",
+    "platforms": ["android", "ios", "web"],
+    "entryPoint": "node_modules/expo/AppEntry.js"
+  }
+}
