@@ -11,9 +11,13 @@ const adminUsers = document.getElementById('adminUsers');
 const adminIncidents = document.getElementById('adminIncidents');
 const exportIncidentsBtn = document.getElementById('exportIncidentsBtn');
 const importIncidentsInput = document.getElementById('importIncidentsInput');
+const useDemoBtn = document.getElementById('useDemoCredentials');
+const adminUsernameInput = document.getElementById('adminUsername');
+const adminPasswordInput = document.getElementById('adminPassword');
 const toast = document.getElementById('toast');
 const adminTabs = Array.from(document.querySelectorAll('[data-admin-tab]'));
 
+const ADMIN_SESSION_KEY = 'rakshasutra-admin-session';
 let activeAdminTab = 'overview';
 
 function showToast(message) {
@@ -22,6 +26,16 @@ function showToast(message) {
   setTimeout(() => {
     toast.classList.add('hidden');
   }, 2200);
+}
+
+function showAdminDashboard() {
+  adminLoginPanel.hidden = true;
+  adminDashboard.hidden = false;
+  adminLoginMessage.textContent = 'Access granted.';
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(ADMIN_SESSION_KEY, 'true');
+  }
+  renderAdminPanel();
 }
 
 function renderAdminPanel() {
@@ -91,19 +105,34 @@ function renderAdminPanel() {
   }
 }
 
+function restoreAdminSession() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (window.localStorage.getItem(ADMIN_SESSION_KEY) === 'true') {
+    showAdminDashboard();
+  }
+}
+
 adminLoginForm.addEventListener('submit', (event) => {
   event.preventDefault();
-  const username = document.getElementById('adminUsername').value;
-  const password = document.getElementById('adminPassword').value;
+  const username = adminUsernameInput.value;
+  const password = adminPasswordInput.value;
 
   if (authenticateAdmin(username, password)) {
-    adminLoginPanel.hidden = true;
-    adminDashboard.hidden = false;
-    adminLoginMessage.textContent = 'Access granted.';
-    renderAdminPanel();
+    showAdminDashboard();
   } else {
-    adminLoginMessage.textContent = 'Invalid admin credentials.';
+    adminLoginMessage.textContent = 'Invalid admin credentials. Try admin / raksha2026.';
+    showToast('Invalid admin credentials.');
   }
+});
+
+useDemoBtn.addEventListener('click', () => {
+  adminUsernameInput.value = 'admin';
+  adminPasswordInput.value = 'raksha2026';
+  adminLoginMessage.textContent = 'Demo credentials filled in.';
+  showToast('Demo admin credentials prepared.');
 });
 
 exportIncidentsBtn.addEventListener('click', () => {
@@ -146,3 +175,4 @@ adminTabs.forEach((button) => {
 });
 
 renderAdminPanel();
+restoreAdminSession();
