@@ -14,6 +14,7 @@ const importIncidentsInput = document.getElementById('importIncidentsInput');
 const useDemoBtn = document.getElementById('useDemoCredentials');
 const adminUsernameInput = document.getElementById('adminUsername');
 const adminPasswordInput = document.getElementById('adminPassword');
+const adminLogoutBtn = document.getElementById('adminLogoutBtn');
 const toast = document.getElementById('toast');
 const adminTabs = Array.from(document.querySelectorAll('[data-admin-tab]'));
 
@@ -31,11 +32,19 @@ function showToast(message) {
 function showAdminDashboard() {
   adminLoginPanel.hidden = true;
   adminDashboard.hidden = false;
+  adminLogoutBtn.hidden = false;
   adminLoginMessage.textContent = 'Access granted.';
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(ADMIN_SESSION_KEY, 'true');
   }
   renderAdminPanel();
+}
+
+function hideAdminDashboard() {
+  adminLoginPanel.hidden = false;
+  adminDashboard.hidden = true;
+  adminLogoutBtn.hidden = true;
+  adminLoginMessage.textContent = '';
 }
 
 function renderAdminPanel() {
@@ -133,6 +142,16 @@ useDemoBtn.addEventListener('click', () => {
   adminPasswordInput.value = 'raksha2026';
   adminLoginMessage.textContent = 'Demo credentials filled in.';
   showToast('Demo admin credentials prepared.');
+});
+
+adminLogoutBtn.addEventListener('click', () => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(ADMIN_SESSION_KEY);
+  }
+  adminUsernameInput.value = '';
+  adminPasswordInput.value = '';
+  hideAdminDashboard();
+  showToast('Admin logged out.');
 });
 
 exportIncidentsBtn.addEventListener('click', () => {
