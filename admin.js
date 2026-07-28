@@ -1,8 +1,8 @@
-import { addIncident, readIncidents, readUsers, resetStorage } from './dataStore.js';
+\import { addIncident, readIncidents, readUsers, resetStorage } from './dataStore.js';
 
 const DEFAULT_ADMIN = {
-  username: 'admin',
-  password: 'raksha2026'
+  username: 'govind',
+  password: 'govindraksha1'
 };
 
 let adminCredentials = { ...DEFAULT_ADMIN };
