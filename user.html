@@ -19,6 +19,7 @@
         <div class="topbar-actions">
           <a class="ghost-button" href="index.html">Home</a>
           <a class="ghost-button" href="admin.html">Admin</a>
+          <button class="ghost-button" id="logoutBtn" type="button" hidden>Log out</button>
         </div>
       </header>
 
@@ -130,6 +131,29 @@
               <li>Nearby police booth detected</li>
               <li>Trusted contact notified on delay</li>
             </ul>
+          </div>
+        </section>
+
+        <section class="card guardian-card">
+          <div class="card-head">
+            <h3>Guardian panel</h3>
+            <span class="pill active">Protected circle</span>
+          </div>
+          <div class="guardian-grid">
+            <div class="guardian-item">
+              <span>Guardian</span>
+              <strong id="guardianName">—</strong>
+              <p id="guardianPhone">—</p>
+            </div>
+            <div class="guardian-item">
+              <span>Trusted contact</span>
+              <strong id="trustedName">—</strong>
+              <p id="trustedPhone">—</p>
+            </div>
+            <div class="guardian-item">
+              <span>Safe address</span>
+              <strong id="trustedAddress">—</strong>
+            </div>
           </div>
         </section>
 
