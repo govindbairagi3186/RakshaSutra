@@ -295,6 +295,43 @@ a {
   font-size: 0.95rem;
 }
 
+.guardian-card {
+  margin-bottom: 18px;
+}
+
+.guardian-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.guardian-item {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guardian-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+}
+
+.guardian-item strong,
+.guardian-item p {
+  display: block;
+  margin: 0;
+}
+
+.guardian-item p {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
@@ -622,7 +659,8 @@ a {
   }
 
   .control-buttons,
-  .features-grid {
+  .features-grid,
+  .guardian-grid {
     grid-template-columns: 1fr;
   }
 
