@@ -7,8 +7,8 @@ import { resetStorage } from './dataStore.js';
 test('authenticates the default admin account', () => {
   resetStorage();
   resetAdminState();
-  assert.equal(authenticateAdmin('admin', 'raksha2026'), true);
-  assert.equal(authenticateAdmin('admin', 'wrong-password'), false);
+  assert.equal(authenticateAdmin('govind', 'govindraksha1'), true);
+  assert.equal(authenticateAdmin('govind', 'wrong-password'), false);
 });
 
 test('imports incident data into the shared store', () => {
@@ -21,5 +21,5 @@ test('imports incident data into the shared store', () => {
   ]);
 
   assert.equal(imported, 2);
-  assert.equal(authenticateAdmin('admin', 'raksha2026'), true);
+  assert.equal(authenticateAdmin('govind', 'govindraksha1'), true);
 });
