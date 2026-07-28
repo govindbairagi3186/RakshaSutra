@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RakshaSutra | Admin Portal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-badge">🛡️</span>
+          <div>
+            <h1>RakshaSutra</h1>
+            <p>Admin control center</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <a class="ghost-button" href="index.html">Home</a>
+          <a class="ghost-button" href="user.html">User App</a>
+        </div>
+      </header>
+
+      <main>
+        <section class="card admin-card">
+          <div class="card-head">
+            <h3>Admin control center</h3>
+            <div class="topbar-actions">
+              <button class="ghost-button small" data-admin-tab="overview">Overview</button>
+              <button class="ghost-button small" data-admin-tab="users">Users</button>
+              <button class="ghost-button small" data-admin-tab="incidents">Incidents</button>
+            </div>
+          </div>
+
+          <div id="adminLoginPanel" class="admin-login-card">
+            <h4>Admin access</h4>
+            <form id="adminLoginForm" class="auth-form">
+              <label>
+                Username
+                <input type="text" id="adminUsername" required />
+              </label>
+              <label>
+                Password
+                <input type="password" id="adminPassword" required />
+              </label>
+              <button class="primary-btn full" type="submit">Enter admin panel</button>
+              <p id="adminLoginMessage" class="form-message"></p>
+            </form>
+          </div>
+
+          <div id="adminDashboard" hidden>
+            <div class="admin-stats" id="adminStats"></div>
+            <div class="chart-card">
+              <div class="chart-bar"><span>SOS</span><div class="bar-fill sos"></div></div>
+              <div class="chart-bar"><span>Voice</span><div class="bar-fill voice"></div></div>
+              <div class="chart-bar"><span>Location</span><div class="bar-fill location"></div></div>
+            </div>
+            <div class="admin-panel-content">
+              <div id="adminOverview" class="admin-tab"></div>
+              <div id="adminUsers" class="admin-tab" hidden></div>
+              <div id="adminIncidents" class="admin-tab" hidden></div>
+            </div>
+            <div class="admin-actions">
+              <button class="secondary-btn" id="exportIncidentsBtn">Export incidents</button>
+              <label class="secondary-btn import-label">
+                Import incidents
+                <input type="file" id="importIncidentsInput" accept="application/json" />
+              </label>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+
+    <script type="module" src="admin-logic.js"></script>
+  </body>
+</html>
