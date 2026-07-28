@@ -27,6 +27,12 @@ const formMessage = document.getElementById('formMessage');
 const signupExtras = document.getElementById('signupExtras');
 const userBadge = document.getElementById('userBadge');
 const authHint = document.getElementById('authHint');
+const logoutBtn = document.getElementById('logoutBtn');
+const guardianName = document.getElementById('guardianName');
+const guardianPhone = document.getElementById('guardianPhone');
+const trustedName = document.getElementById('trustedName');
+const trustedPhone = document.getElementById('trustedPhone');
+const trustedAddress = document.getElementById('trustedAddress');
 
 const SESSION_KEY = 'rakshasutra-current-user';
 let riskScore = 24;
@@ -180,6 +186,30 @@ function renderAuthMode() {
 function showDashboard() {
   authView.hidden = true;
   dashboardView.hidden = false;
+  logoutBtn.hidden = false;
+}
+
+function hideDashboard() {
+  authView.hidden = false;
+  dashboardView.hidden = true;
+  logoutBtn.hidden = true;
+}
+
+function renderGuardianPanel() {
+  if (!currentUser) {
+    guardianName.textContent = '—';
+    guardianPhone.textContent = '—';
+    trustedName.textContent = '—';
+    trustedPhone.textContent = '—';
+    trustedAddress.textContent = '—';
+    return;
+  }
+
+  guardianName.textContent = currentUser.guardianName || '—';
+  guardianPhone.textContent = currentUser.guardianPhone || '—';
+  trustedName.textContent = currentUser.trustedName || '—';
+  trustedPhone.textContent = currentUser.trustedPhone || '—';
+  trustedAddress.textContent = currentUser.trustedAddress || '—';
 }
 
 function setCurrentUser(user) {
@@ -188,7 +218,11 @@ function setCurrentUser(user) {
     userBadge.textContent = `Welcome, ${user.fullName.split(' ')[0]}`;
     persistSession(user);
     showDashboard();
+    renderGuardianPanel();
     statusNote.textContent = 'Your account is active. Safety controls are unlocked.';
+  } else {
+    hideDashboard();
+    renderGuardianPanel();
   }
 }
 
@@ -284,6 +318,15 @@ endCallBtn.addEventListener('click', () => {
   callModal.classList.add('hidden');
   callModal.setAttribute('aria-hidden', 'true');
   showToast('Call ended.');
+});
+
+logoutBtn.addEventListener('click', () => {
+  currentUser = null;
+  clearSession();
+  authForm.reset();
+  formMessage.textContent = 'You have been logged out.';
+  showToast('Logged out successfully.');
+  setCurrentUser(null);
 });
 
 authSwitch.addEventListener('click', () => {
