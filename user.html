@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RakshaSutra | User App</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-badge">🛡️</span>
+          <div>
+            <h1>RakshaSutra</h1>
+            <p>User safety dashboard</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <a class="ghost-button" href="index.html">Home</a>
+          <a class="ghost-button" href="admin.html">Admin</a>
+        </div>
+      </header>
+
+      <main>
+        <section class="auth-grid" id="authView">
+          <div class="card auth-card">
+            <div class="card-head">
+              <h3 id="authTitle">Create your account</h3>
+              <span class="pill active" id="authSwitch">Already have an account?</span>
+            </div>
+            <form id="authForm" class="auth-form">
+              <div class="form-grid">
+                <label>
+                  Full name
+                  <input type="text" id="fullName" name="fullName" required />
+                </label>
+                <label>
+                  Email
+                  <input type="email" id="email" name="email" required />
+                </label>
+                <label>
+                  Phone number
+                  <input type="tel" id="phone" name="phone" required />
+                </label>
+                <label>
+                  Password
+                  <input type="password" id="password" name="password" required />
+                </label>
+              </div>
+
+              <div class="divider"></div>
+
+              <div id="signupExtras">
+                <h4>Guardian contact</h4>
+                <div class="form-grid">
+                  <label>
+                    Guardian name
+                    <input type="text" id="guardianName" name="guardianName" required />
+                  </label>
+                  <label>
+                    Guardian phone
+                    <input type="tel" id="guardianPhone" name="guardianPhone" required />
+                  </label>
+                </div>
+
+                <h4>Trusted friend / person</h4>
+                <div class="form-grid">
+                  <label>
+                    Trusted person name
+                    <input type="text" id="trustedName" name="trustedName" required />
+                  </label>
+                  <label>
+                    Address
+                    <input type="text" id="trustedAddress" name="trustedAddress" required />
+                  </label>
+                  <label>
+                    Trusted phone
+                    <input type="tel" id="trustedPhone" name="trustedPhone" required />
+                  </label>
+                </div>
+              </div>
+
+              <button class="primary-btn full" type="submit" id="submitAuthBtn">Create account</button>
+              <p class="form-message" id="formMessage"></p>
+            </form>
+          </div>
+        </section>
+
+        <section class="dashboard-grid" id="dashboardView" hidden>
+          <div class="card status-card" id="sos">
+            <div class="card-head">
+              <h3>Guardian controls</h3>
+              <span class="pill subtle" id="userBadge">Ready</span>
+            </div>
+            <div class="control-buttons">
+              <button class="primary-btn" id="sosBtn">🚨 One-Tap SOS</button>
+              <button class="secondary-btn" id="voiceBtn">🎙️ Voice SOS</button>
+              <button class="secondary-btn" id="callBtn">📞 Fake Call</button>
+              <button class="secondary-btn" id="shareBtn">📍 Share Location</button>
+            </div>
+            <div class="status-summary">
+              <div class="status-pill">
+                <span>Risk score</span>
+                <strong id="riskScore">24</strong>
+              </div>
+              <div class="status-pill">
+                <span>Location</span>
+                <strong id="locationText">Live location shared</strong>
+                <small id="coordsText">Lat 12.9716 · Lon 77.5946</small>
+              </div>
+            </div>
+            <div class="status-note" id="statusNote">Safe route approved. Your guardian mode is active.</div>
+          </div>
+
+          <div class="card route-card">
+            <div class="card-head">
+              <h3>Safe route preview</h3>
+              <span class="pill active">Fastest path</span>
+            </div>
+            <div class="route-map">
+              <div class="route-line"></div>
+              <div class="map-node home">Home</div>
+              <div class="map-node work">Work</div>
+              <div class="map-node safe">Safe stop</div>
+            </div>
+            <ul class="route-points">
+              <li>Well-lit corridor to the main road</li>
+              <li>Nearby police booth detected</li>
+              <li>Trusted contact notified on delay</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="features-grid" id="features">
+          <article class="card feature-card">
+            <h3>One-Tap & Voice SOS</h3>
+            <p>Send help immediately with a button or a spoken command.</p>
+          </article>
+          <article class="card feature-card">
+            <h3>Live location sharing</h3>
+            <p>Broadcast your movement to trusted contacts in real time.</p>
+          </article>
+          <article class="card feature-card">
+            <h3>AI risk detection</h3>
+            <p>Adaptive safety checks suggest when you should avoid a route.</p>
+          </article>
+          <article class="card feature-card">
+            <h3>Fake incoming calls</h3>
+            <p>Create a believable call to help you leave a tense situation.</p>
+          </article>
+        </section>
+
+        <section class="card activity-card">
+          <div class="card-head">
+            <h3>Guardian activity</h3>
+            <button class="ghost-button small" id="scanBtn">Run AI Scan</button>
+          </div>
+          <ul id="activityList">
+            <li>Safe route approved for your evening commute.</li>
+            <li>Emergency mode is active and ready to escalate.</li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal hidden" id="callModal" aria-hidden="true">
+      <div class="modal-card">
+        <p>Incoming call</p>
+        <h3 id="callName">Mom</h3>
+        <p id="callStatus">Answering in 3 seconds...</p>
+      </div>
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+
+    <script type="module" src="user.js"></script>
+  </body>
+</html>
