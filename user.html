@@ -30,6 +30,7 @@
               <span class="pill active" id="authSwitch">Already have an account?</span>
             </div>
             <form id="authForm" class="auth-form">
+              <p class="form-hint" id="authHint">Create an account or log in to unlock SOS, live location sharing, and safety controls.</p>
               <div class="form-grid">
                 <label>
                   Full name
@@ -166,9 +167,23 @@
 
     <div class="modal hidden" id="callModal" aria-hidden="true">
       <div class="modal-card">
-        <p>Incoming call</p>
-        <h3 id="callName">Mom</h3>
-        <p id="callStatus">Answering in 3 seconds...</p>
+        <div id="incomingCallScreen">
+          <p class="call-label">Incoming call</p>
+          <div class="call-avatar">📞</div>
+          <h3 id="callName">Mom</h3>
+          <p id="callStatus">Ringing • tap answer to continue</p>
+          <div class="call-actions">
+            <button class="secondary-btn" id="declineCallBtn" type="button">Decline</button>
+            <button class="primary-btn" id="answerCallBtn" type="button">Answer</button>
+          </div>
+        </div>
+        <div id="pickupScreen" hidden>
+          <p class="call-label">Connected</p>
+          <div class="call-avatar">🛡️</div>
+          <h3 id="pickupName">Safe Exit Mode</h3>
+          <p id="pickupStatus">A calm call is now active. Move to a safe place and keep your route visible.</p>
+          <button class="secondary-btn full" id="endCallBtn" type="button">End call</button>
+        </div>
       </div>
     </div>
 
