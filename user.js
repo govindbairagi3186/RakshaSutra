@@ -1,217 +1,191 @@
-import { createUser, authenticateUser } from './auth.js';
 import { addIncident, readUsers } from './dataStore.js';
 
 const $ = (id) => document.getElementById(id);
-const riskScoreElement = $('riskScore');
-const locationText = $('locationText');
-const coordsText = $('coordsText');
-const activityList = $('activityList');
-const statusNote = $('statusNote');
-const callModal = $('callModal');
-const callName = $('callName');
-const callStatus = $('callStatus');
-const incomingCallScreen = $('incomingCallScreen');
-const pickupScreen = $('pickupScreen');
-const pickupName = $('pickupName');
-const pickupStatus = $('pickupStatus');
-const answerCallBtn = $('answerCallBtn');
-const declineCallBtn = $('declineCallBtn');
-const endCallBtn = $('endCallBtn');
-const toast = $('toast');
-const authView = $('authView');
-const dashboardView = $('dashboardView');
-const authForm = $('authForm');
-const authTitle = $('authTitle');
-const authSwitch = $('authSwitch');
-const submitAuthBtn = $('submitAuthBtn');
-const formMessage = $('formMessage');
-const signupExtras = $('signupExtras');
-const userBadge = $('userBadge');
-const authHint = $('authHint');
-const logoutBtn = $('logoutBtn');
-const guardianName = $('guardianName');
-const guardianPhone = $('guardianPhone');
-const trustedName = $('trustedName');
-const trustedPhone = $('trustedPhone');
-const trustedAddress = $('trustedAddress');
-
 const SESSION_KEY = 'rakshasutra-current-user';
-let riskScore = 24;
-let isSignupMode = true;
+
+const els = {
+  sosBtn: $('sosBtn'), voiceBtn: $('voiceBtn'), callBtn: $('callBtn'), shareBtn: $('shareBtn'),
+  scanBtn: $('scanBtn'), logoutBtn: $('logoutBtn'), userBadge: $('userBadge'),
+  riskScore: $('riskScore'), locationText: $('locationText'), coordsText: $('coordsText'),
+  statusNote: $('statusNote'), activityList: $('activityList'), toast: $('toast'),
+  guardianName: $('guardianNameDisplay'), guardianPhone: $('guardianPhoneDisplay'),
+  trustedName: $('trustedNameDisplay'), trustedPhone: $('trustedPhoneDisplay'),
+  trustedAddress: $('trustedAddressDisplay'),
+  guardianSmsBtn: $('guardianSmsBtn'), trustedSmsBtn: $('trustedSmsBtn'),
+  emergencyModal: $('emergencyModal'), emergencySummary: $('emergencySummary'),
+  closeEmergencyBtn: $('closeEmergencyBtn'), guardianEmergencySmsBtn: $('guardianEmergencySmsBtn'),
+  trustedEmergencySmsBtn: $('trustedEmergencySmsBtn'),
+  callModal: $('callModal'), callName: $('callName'), callStatus: $('callStatus'),
+  incomingCallScreen: $('incomingCallScreen'), pickupScreen: $('pickupScreen'),
+  answerCallBtn: $('answerCallBtn'), declineCallBtn: $('declineCallBtn'), endCallBtn: $('endCallBtn')
+};
+
 let currentUser = null;
+let lastPosition = null;
 let sosActive = false;
 let locationWatchId = null;
-let lastPosition = null;
+let ringtoneTimer = null;
+let audioContext = null;
 
 function showToast(message) {
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3500);
+  if (!els.toast) return;
+  els.toast.textContent = message;
+  els.toast.classList.remove('hidden');
+  window.clearTimeout(showToast.timer);
+  showToast.timer = window.setTimeout(() => els.toast.classList.add('hidden'), 3200);
 }
 
 function addActivity(message) {
-  if (!activityList) return;
   const item = document.createElement('li');
   item.textContent = message;
-  activityList.prepend(item);
+  els.activityList.prepend(item);
 }
 
-function updateRiskScore() {
-  if (riskScoreElement) riskScoreElement.textContent = String(riskScore);
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    id: user.id, email: user.email, fullName: user.fullName, phone: user.phone,
+    guardianName: user.guardianName, guardianPhone: user.guardianPhone,
+    trustedName: user.trustedName, trustedPhone: user.trustedPhone,
+    trustedAddress: user.trustedAddress
+  }));
 }
 
-function ensureAuthenticated(action) {
-  if (!currentUser) {
-    showToast('Register or log in first.');
-    if (statusNote) statusNote.textContent = 'Register or log in to unlock safety controls.';
-    return false;
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const snapshot = JSON.parse(raw);
+    const users = readUsers();
+    const latest = users.find((u) => u.id === snapshot.id);
+    return latest || snapshot;
+  } catch {
+    return null;
   }
-  if (action && statusNote) {
-    statusNote.textContent = `${action} is active for ${currentUser.fullName.split(' ')[0]}.`;
+}
+
+function requireLogin() {
+  if (!currentUser) {
+    window.location.href = 'login.html';
+    return false;
   }
   return true;
 }
 
-function persistSession(user) {
-  localStorage.setItem(SESSION_KEY, user.id);
-}
-
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-}
-
-function restoreSession() {
-  const savedId = localStorage.getItem(SESSION_KEY);
-  if (!savedId) return;
-  const savedUser = readUsers().find((user) => user.id === savedId);
-  if (savedUser) setCurrentUser(savedUser);
-}
-
-function getEmergencyContact() {
+function contact(kind) {
   if (!currentUser) return null;
-  const phone = currentUser.guardianPhone || currentUser.trustedPhone || '';
-  const name = currentUser.guardianName || currentUser.trustedName || 'Emergency contact';
-  return { name, phone: String(phone).trim() };
+  if (kind === 'guardian') {
+    return { name: currentUser.guardianName || 'Guardian', phone: currentUser.guardianPhone || '' };
+  }
+  return { name: currentUser.trustedName || 'Trusted Contact', phone: currentUser.trustedPhone || '' };
 }
 
-function cleanPhoneForUri(phone) {
+function cleanPhone(phone) {
   return String(phone || '').replace(/[^0-9+]/g, '');
 }
 
 function getPosition() {
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('This phone/browser does not provide GPS.'));
-      return;
-    }
-
+    if (!navigator.geolocation) return reject(new Error('GPS is not available in this browser.'));
     navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0
+      enableHighAccuracy: true, timeout: 15000, maximumAge: 0
     });
   });
 }
 
-function positionPayload(position) {
-  return {
+function setPosition(position) {
+  lastPosition = {
     latitude: Number(position.coords.latitude.toFixed(6)),
     longitude: Number(position.coords.longitude.toFixed(6)),
     accuracy: Math.round(position.coords.accuracy || 0),
     timestamp: new Date().toISOString()
   };
+  els.locationText.textContent = 'GPS location active';
+  els.coordsText.textContent = `${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`;
 }
 
-function mapsLink(position = lastPosition) {
-  if (!position) return '';
-  return `https://maps.google.com/?q=${position.latitude},${position.longitude}`;
+function mapsLink() {
+  return lastPosition ? `https://maps.google.com/?q=${lastPosition.latitude},${lastPosition.longitude}` : '';
 }
 
-function updateLocationUI(position) {
-  const p = positionPayload(position);
-  lastPosition = p;
-
-  if (locationText) locationText.textContent = 'GPS location active';
-  if (coordsText) coordsText.textContent = `${p.latitude}, ${p.longitude} · ±${p.accuracy}m`;
-}
-
-function buildSOSMessage() {
-  const firstName = currentUser?.fullName?.split(' ')[0] || 'User';
-  const location = mapsLink();
-
+function buildMessage() {
   return [
     '🚨 RAKSHASUTRA SOS ALERT',
-    `${firstName} needs help.`,
+    `${currentUser.fullName || 'User'} needs help.`,
     `Time: ${new Date().toLocaleString('en-IN')}`,
-    location ? `Current location: ${location}` : 'Current location: GPS unavailable.',
-    'Please contact me immediately.'
+    lastPosition ? `Location: ${mapsLink()}` : 'Location: GPS unavailable.',
+    `GPS accuracy: ${lastPosition?.accuracy ?? 'unknown'}m`,
+    'Please contact the user immediately.'
   ].join('\n');
 }
 
-function openSMS(message) {
-  const contact = getEmergencyContact();
-  if (!contact?.phone) {
-    showToast('Add a guardian or trusted phone number first.');
-    return false;
+function smsTo(kind) {
+  const c = contact(kind);
+  if (!c?.phone) {
+    showToast(`${kind === 'guardian' ? 'Guardian' : 'Trusted contact'} phone number is not saved.`);
+    return;
   }
-
-  const phone = cleanPhoneForUri(contact.phone);
-  const body = encodeURIComponent(message);
-  window.location.href = `sms:${phone}?body=${body}`;
-  return true;
+  const body = encodeURIComponent(buildMessage());
+  window.location.href = `sms:${cleanPhone(c.phone)}?body=${body}`;
 }
 
-function openPhoneCall() {
-  const contact = getEmergencyContact();
-  if (!contact?.phone) {
-    showToast('Add a guardian or trusted phone number first.');
-    return false;
-  }
-
-  const phone = cleanPhoneForUri(contact.phone);
-  window.location.href = `tel:${phone}`;
-  return true;
+function openEmergencyModal() {
+  els.emergencySummary.textContent = lastPosition
+    ? `GPS: ${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`
+    : 'GPS was unavailable. You can still choose an emergency service.';
+  els.emergencyModal.classList.remove('hidden');
+  els.emergencyModal.setAttribute('aria-hidden', 'false');
 }
 
-async function sendLocationBySMS() {
-  if (!ensureAuthenticated('Location sharing')) return;
+function closeEmergencyModal() {
+  els.emergencyModal.classList.add('hidden');
+  els.emergencyModal.setAttribute('aria-hidden', 'true');
+}
+
+async function triggerSOS() {
+  if (!requireLogin()) return;
+  els.sosBtn.disabled = true;
+  els.sosBtn.textContent = '⏳ Getting GPS…';
 
   try {
-    const position = await getPosition();
-    updateLocationUI(position);
+    try {
+      const position = await getPosition();
+      setPosition(position);
+    } catch (error) {
+      showToast(`GPS unavailable: ${error.message}`);
+      addActivity('SOS started without a fresh GPS fix.');
+    }
 
-    const message = [
-      '📍 RakshaSutra location update',
-      `${currentUser.fullName.split(' ')[0]} is sharing their current location.`,
-      `Time: ${new Date().toLocaleString('en-IN')}`,
-      `Location: ${mapsLink()}`
-    ].join('\n');
-
+    sosActive = true;
+    startLiveLocation();
+    els.sosBtn.textContent = '🛑 Stop SOS';
+    els.statusNote.textContent = 'SOS active. Choose an emergency service or send the prepared SOS SMS.';
     addIncident({
-      type: 'location-share',
-      message: 'GPS location prepared for emergency contact.',
-      latitude: lastPosition.latitude,
-      longitude: lastPosition.longitude
+      type: 'sos',
+      message: 'SOS activated; emergency center displayed.',
+      latitude: lastPosition?.latitude ?? null,
+      longitude: lastPosition?.longitude ?? null
     });
-
-    addActivity('GPS location prepared in the phone SMS app.');
-    showToast('Your SMS app will open with the location message. Tap Send.');
-    openSMS(message);
-  } catch (error) {
-    showToast(`GPS unavailable: ${error.message}`);
-    if (statusNote) statusNote.textContent = 'Allow location permission and try again.';
+    addActivity('SOS activated. Emergency center opened.');
+    openEmergencyModal();
+  } finally {
+    els.sosBtn.disabled = false;
   }
+}
+
+function stopSOS() {
+  sosActive = false;
+  stopLiveLocation();
+  els.sosBtn.textContent = '🚨 One-Tap SOS';
+  els.statusNote.textContent = 'SOS stopped on this device.';
+  addIncident({ type: 'sos-stop', message: 'SOS stopped on the device.' });
+  addActivity('SOS stopped.');
 }
 
 function startLiveLocation() {
   if (!navigator.geolocation || locationWatchId !== null) return;
-
   locationWatchId = navigator.geolocation.watchPosition(
-    (position) => updateLocationUI(position),
-    (error) => {
-      if (coordsText) coordsText.textContent = `GPS error: ${error.message}`;
-    },
+    setPosition,
+    () => {},
     { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
   );
 }
@@ -223,263 +197,131 @@ function stopLiveLocation() {
   }
 }
 
-async function triggerRealSOS() {
-  if (!ensureAuthenticated('Emergency SOS')) return;
-
-  const contact = getEmergencyContact();
-  if (!contact?.phone) {
-    showToast('Add a guardian or trusted phone number first.');
-    if (statusNote) statusNote.textContent = 'No emergency contact number is saved.';
+function emergencyVoiceCall() {
+  if (!requireLogin()) return;
+  const c = contact('guardian');
+  if (!c?.phone) {
+    showToast('Guardian phone number is not saved.');
     return;
   }
+  window.location.href = `tel:${cleanPhone(c.phone)}`;
+}
 
-  const button = $('sosBtn');
-  if (button) {
-    button.disabled = true;
-    button.textContent = '⏳ Getting GPS...';
-  }
+function playRingtone() {
+  stopRingtone();
+  if (navigator.vibrate) navigator.vibrate([350, 180, 350, 180, 350, 180, 350]);
 
   try {
-    try {
-      const position = await getPosition();
-      updateLocationUI(position);
-    } catch (gpsError) {
-      lastPosition = null;
-      addActivity(`GPS unavailable: ${gpsError.message}`);
-    }
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const beep = () => {
+      if (!audioContext) return;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.frequency.value = 880;
+      gain.gain.value = 0.045;
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.start();
+      osc.stop(audioContext.currentTime + 0.25);
+    };
+    beep();
+    ringtoneTimer = window.setInterval(beep, 1200);
+  } catch {
+    // Some browsers block synthesized audio; vibration may still work.
+  }
+}
 
-    const message = buildSOSMessage();
+function stopRingtone() {
+  if (ringtoneTimer) {
+    window.clearInterval(ringtoneTimer);
+    ringtoneTimer = null;
+  }
+  if (audioContext) {
+    audioContext.close().catch(() => {});
+    audioContext = null;
+  }
+  if (navigator.vibrate) navigator.vibrate(0);
+}
 
-    addIncident({
-      type: 'sos',
-      message: 'SOS activated. Emergency SMS prepared for the saved contact.',
-      latitude: lastPosition?.latitude ?? null,
-      longitude: lastPosition?.longitude ?? null
-    });
+function openFakeCall() {
+  if (!requireLogin()) return;
+  const c = contact('guardian') || { name: 'Trusted Contact' };
+  els.callName.textContent = c.name || 'Trusted Contact';
+  els.callStatus.textContent = 'Ringing…';
+  els.incomingCallScreen.hidden = false;
+  els.pickupScreen.hidden = true;
+  els.callModal.classList.remove('hidden');
+  els.callModal.setAttribute('aria-hidden', 'false');
+  playRingtone();
+}
 
-    sosActive = true;
-    startLiveLocation();
-    riskScore = Math.min(100, riskScore + 25);
-    updateRiskScore();
+function answerFakeCall() {
+  stopRingtone();
+  els.incomingCallScreen.hidden = true;
+  els.pickupScreen.hidden = false;
+  els.callModal.classList.remove('hidden');
+  els.callStatus.textContent = 'Connected';
+  addActivity('Fake safety call answered.');
+}
 
-    if (statusNote) {
-      statusNote.textContent = 'SOS ready. SMS will open with your GPS location. Tap Send, then call the contact.';
-    }
+function closeFakeCall() {
+  stopRingtone();
+  els.callModal.classList.add('hidden');
+  els.callModal.setAttribute('aria-hidden', 'true');
+}
 
-    addActivity('SOS activated. Emergency SMS prepared.');
-    showToast('SOS message ready. Tap Send in your SMS app.');
+function renderUser() {
+  els.userBadge.textContent = `Welcome, ${currentUser.fullName?.split(' ')[0] || 'User'}`;
+  els.guardianName.textContent = currentUser.guardianName || '—';
+  els.guardianPhone.textContent = currentUser.guardianPhone || '—';
+  els.trustedName.textContent = currentUser.trustedName || '—';
+  els.trustedPhone.textContent = currentUser.trustedPhone || '—';
+  els.trustedAddress.textContent = currentUser.trustedAddress || '—';
+  els.statusNote.textContent = 'Account active. Your emergency controls are ready.';
+}
 
-    if (button) button.textContent = '🛑 Stop SOS';
-
-    setTimeout(() => openSMS(message), 250);
+els.sosBtn.addEventListener('click', () => sosActive ? stopSOS() : triggerSOS());
+els.voiceBtn.addEventListener('click', emergencyVoiceCall);
+els.callBtn.addEventListener('click', openFakeCall);
+els.shareBtn.addEventListener('click', async () => {
+  if (!requireLogin()) return;
+  try {
+    setPosition(await getPosition());
+    addIncident({ type: 'location-share', message: 'Location SMS prepared.', latitude: lastPosition.latitude, longitude: lastPosition.longitude });
+    addActivity('Location SMS prepared.');
+    smsTo('guardian');
   } catch (error) {
-    if (statusNote) statusNote.textContent = error.message;
-    showToast(error.message);
-    if (button) button.textContent = '🚨 One-Tap SOS';
-  } finally {
-    if (button) button.disabled = false;
+    showToast(`GPS unavailable: ${error.message}`);
   }
-}
-
-function stopSOS() {
-  sosActive = false;
-  stopLiveLocation();
-
-  const button = $('sosBtn');
-  if (button) button.textContent = '🚨 One-Tap SOS';
-
-  if (statusNote) statusNote.textContent = 'SOS stopped on this device.';
-  addActivity('SOS stopped.');
-  addIncident({ type: 'sos-stop', message: 'SOS stopped on the device.' });
-  showToast('SOS stopped.');
-}
-
-async function handleSOS() {
-  if (sosActive) stopSOS();
-  else await triggerRealSOS();
-}
-
-function showCallModal() {
-  const contact = getEmergencyContact();
-  if (!contact?.phone) {
-    showToast('Add a guardian or trusted phone number first.');
-    return;
-  }
-
-  callName.textContent = contact.name;
-  callStatus.textContent = contact.phone;
-  incomingCallScreen.hidden = false;
-  pickupScreen.hidden = true;
-  callModal.classList.remove('hidden');
-  callModal.setAttribute('aria-hidden', 'false');
-}
-
-function answerCall() {
-  if (!ensureAuthenticated('Emergency call')) return;
-
-  const contact = getEmergencyContact();
-  callModal.classList.add('hidden');
-  callModal.setAttribute('aria-hidden', 'true');
-
-  addActivity(`Calling ${contact.name}.`);
-  addIncident({ type: 'call', message: `Emergency call started for ${contact.name}.` });
-  openPhoneCall();
-}
-
-function declineCall() {
-  callModal.classList.add('hidden');
-  callModal.setAttribute('aria-hidden', 'true');
-}
-
-function renderAuthMode() {
-  if (isSignupMode) {
-    authTitle.textContent = 'Create your account';
-    submitAuthBtn.textContent = 'Create account';
-    authSwitch.textContent = 'Already have an account?';
-    authHint.textContent = 'Create an account to unlock SOS, GPS location and emergency-contact tools.';
-  } else {
-    authTitle.textContent = 'Log in to RakshaSutra';
-    submitAuthBtn.textContent = 'Log in';
-    authSwitch.textContent = 'Need to create an account?';
-    authHint.textContent = 'Log in with your registered account.';
-  }
-
-  signupExtras.hidden = !isSignupMode;
-  document.querySelectorAll('#authForm input[required]').forEach((input) => {
-    input.required = isSignupMode ? true : input.id === 'email' || input.id === 'password';
-  });
-}
-
-function showDashboard() {
-  authView.hidden = true;
-  dashboardView.hidden = false;
-  logoutBtn.hidden = false;
-}
-
-function hideDashboard() {
-  authView.hidden = false;
-  dashboardView.hidden = true;
-  logoutBtn.hidden = true;
-}
-
-function renderGuardianPanel() {
-  if (!currentUser) {
-    guardianName.textContent = '—';
-    guardianPhone.textContent = '—';
-    trustedName.textContent = '—';
-    trustedPhone.textContent = '—';
-    trustedAddress.textContent = '—';
-    return;
-  }
-
-  guardianName.textContent = currentUser.guardianName || '—';
-  guardianPhone.textContent = currentUser.guardianPhone || '—';
-  trustedName.textContent = currentUser.trustedName || '—';
-  trustedPhone.textContent = currentUser.trustedPhone || '—';
-  trustedAddress.textContent = currentUser.trustedAddress || '—';
-}
-
-function setCurrentUser(user) {
-  currentUser = user;
-  if (user) {
-    userBadge.textContent = `Welcome, ${user.fullName.split(' ')[0]}`;
-    persistSession(user);
-    showDashboard();
-    renderGuardianPanel();
-    statusNote.textContent = 'Account active. Free SOS, GPS, call and SMS tools are ready.';
-  } else {
-    hideDashboard();
-    renderGuardianPanel();
-  }
-}
-
-function handleAuthSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(authForm);
-  const profile = Object.fromEntries(formData.entries());
-
-  if (isSignupMode) {
-    try {
-      const created = createUser(profile);
-      setCurrentUser(created);
-      formMessage.textContent = 'Account created successfully.';
-      showToast('Account created successfully.');
-      authForm.reset();
-    } catch (error) {
-      formMessage.textContent = error.message;
-      showToast(error.message);
-    }
-    return;
-  }
-
-  const authenticated = authenticateUser(profile.email, profile.password);
-  if (authenticated) {
-    setCurrentUser(authenticated);
-    formMessage.textContent = 'Login successful.';
-    showToast('Welcome back.');
-    authForm.reset();
-  } else {
-    formMessage.textContent = 'Invalid credentials.';
-    showToast('Invalid credentials.');
-  }
-}
-
-$('sosBtn').addEventListener('click', handleSOS);
-
-$('voiceBtn').addEventListener('click', () => {
-  if (!ensureAuthenticated('Voice SOS')) return;
-  const contact = getEmergencyContact();
-  if (!contact?.phone) {
-    showToast('Add a guardian or trusted phone number first.');
-    return;
-  }
-  showToast('Opening the phone call option.');
-  addActivity('Voice SOS requested a phone call.');
-  openPhoneCall();
 });
+els.guardianSmsBtn.addEventListener('click', () => smsTo('guardian'));
+els.trustedSmsBtn.addEventListener('click', () => smsTo('trusted'));
+els.guardianEmergencySmsBtn.addEventListener('click', () => smsTo('guardian'));
+els.trustedEmergencySmsBtn.addEventListener('click', () => smsTo('trusted'));
+els.closeEmergencyBtn.addEventListener('click', closeEmergencyModal);
+els.declineCallBtn.addEventListener('click', closeFakeCall);
+els.answerCallBtn.addEventListener('click', answerFakeCall);
+els.endCallBtn.addEventListener('click', closeFakeCall);
 
-$('callBtn').addEventListener('click', () => {
-  if (!ensureAuthenticated('Emergency call')) return;
-  showCallModal();
-});
-
-$('shareBtn').addEventListener('click', sendLocationBySMS);
-
-$('scanBtn').addEventListener('click', () => {
-  if (!ensureAuthenticated('Safety scan')) return;
-  riskScore = Math.min(100, riskScore + Math.floor(Math.random() * 12) + 4);
-  updateRiskScore();
-  statusNote.textContent = 'Safety scan completed.';
-  addActivity('Safety scan updated your risk profile.');
+els.scanBtn.addEventListener('click', () => {
+  if (!requireLogin()) return;
+  const score = Number(els.riskScore.textContent || 24);
+  els.riskScore.textContent = String(Math.min(100, score + 5));
   addIncident({ type: 'scan', message: 'Safety scan completed.' });
+  addActivity('Safety scan completed.');
   showToast('Safety scan complete.');
 });
 
-answerCallBtn.addEventListener('click', answerCall);
-declineCallBtn.addEventListener('click', declineCall);
-
-endCallBtn.addEventListener('click', () => {
-  callModal.classList.add('hidden');
-  callModal.setAttribute('aria-hidden', 'true');
-});
-
-logoutBtn.addEventListener('click', () => {
+els.logoutBtn.addEventListener('click', () => {
   stopLiveLocation();
-  sosActive = false;
-  currentUser = null;
-  clearSession();
-  authForm.reset();
-  setCurrentUser(null);
-  showToast('Logged out successfully.');
+  stopRingtone();
+  localStorage.removeItem(SESSION_KEY);
+  window.location.href = 'login.html';
 });
 
-authSwitch.addEventListener('click', () => {
-  isSignupMode = !isSignupMode;
-  renderAuthMode();
-});
-
-authForm.addEventListener('submit', handleAuthSubmit);
-
-renderAuthMode();
-updateRiskScore();
-restoreSession();
+currentUser = loadSession();
+if (!currentUser) {
+  window.location.replace('login.html');
+} else {
+  renderUser();
+}
