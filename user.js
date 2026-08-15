@@ -934,84 +934,186 @@ function emergencyVoiceCall() {
 
 
 /* =====================================================
-   FAKE CALL RINGTONE
+   FAKE CALL — RINGTONE + VIBRATION
 ===================================================== */
 
-function playRingtone() {
+let ringtoneTimer = null;
+let audioContext = null;
+let ringtoneStarted = false;
 
-  stopRingtone();
 
+/* -----------------------------------------------------
+   START VIBRATION
+----------------------------------------------------- */
 
-  if (navigator.vibrate) {
+function startFakeCallVibration() {
 
-    navigator.vibrate(
-      [350, 180, 350, 180, 350, 180, 350]
-    );
+  if (!navigator.vibrate) {
+    return;
   }
 
-
-  try {
-
-    audioContext =
-      new (
-        window.AudioContext ||
-        window.webkitAudioContext
-      )();
-
-
-    const beep = () => {
-
-      if (!audioContext) {
-        return;
-      }
+  // Repeating vibration pattern.
+  navigator.vibrate([
+    500,
+    250,
+    500,
+    250,
+    500,
+    1000
+  ]);
+}
 
 
-      const osc =
-        audioContext.createOscillator();
+/* -----------------------------------------------------
+   STOP VIBRATION
+----------------------------------------------------- */
 
+function stopFakeCallVibration() {
 
-      const gain =
-        audioContext.createGain();
-
-
-      osc.frequency.value = 880;
-
-      gain.gain.value = 0.045;
-
-
-      osc.connect(gain);
-
-      gain.connect(
-        audioContext.destination
-      );
-
-
-      osc.start();
-
-      osc.stop(
-        audioContext.currentTime + 0.25
-      );
-    };
-
-
-    beep();
-
-
-    ringtoneTimer =
-      window.setInterval(
-        beep,
-        1200
-      );
-
-  } catch {
-    // Browser may block synthesized audio.
+  if (navigator.vibrate) {
+    navigator.vibrate(0);
   }
 }
 
 
-function stopRingtone() {
+/* -----------------------------------------------------
+   CREATE RINGTONE
+----------------------------------------------------- */
 
-  if (ringtoneTimer) {
+function createRingtoneBeep() {
+
+  try {
+
+    if (!audioContext) {
+
+      const AudioContext =
+        window.AudioContext ||
+        window.webkitAudioContext;
+
+      if (!AudioContext) {
+        return;
+      }
+
+      audioContext = new AudioContext();
+    }
+
+
+    if (audioContext.state === 'suspended') {
+
+      audioContext.resume()
+        .catch(() => {});
+    }
+
+
+    const oscillator =
+      audioContext.createOscillator();
+
+    const gain =
+      audioContext.createGain();
+
+
+    oscillator.type = 'sine';
+
+    oscillator.frequency.setValueAtTime(
+      880,
+      audioContext.currentTime
+    );
+
+
+    gain.gain.setValueAtTime(
+      0.0001,
+      audioContext.currentTime
+    );
+
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.06,
+      audioContext.currentTime + 0.03
+    );
+
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      audioContext.currentTime + 0.45
+    );
+
+
+    oscillator.connect(gain);
+
+    gain.connect(
+      audioContext.destination
+    );
+
+
+    oscillator.start();
+
+    oscillator.stop(
+      audioContext.currentTime + 0.5
+    );
+
+
+  } catch (error) {
+
+    console.warn(
+      'Fake ringtone could not start:',
+      error
+    );
+  }
+}
+
+
+/* -----------------------------------------------------
+   START RINGTONE
+----------------------------------------------------- */
+
+function startFakeCallRingtone() {
+
+  stopFakeCallRingtone();
+
+  ringtoneStarted = true;
+
+
+  /*
+   * Initial ring.
+   */
+
+  createRingtoneBeep();
+
+
+  /*
+   * Repeat the ringtone.
+   */
+
+  ringtoneTimer =
+    window.setInterval(() => {
+
+      if (!ringtoneStarted) {
+        return;
+      }
+
+      createRingtoneBeep();
+
+    }, 1500);
+
+
+  /*
+   * Start device vibration.
+   */
+
+  startFakeCallVibration();
+}
+
+
+/* -----------------------------------------------------
+   STOP RINGTONE
+----------------------------------------------------- */
+
+function stopFakeCallRingtone() {
+
+  ringtoneStarted = false;
+
+
+  if (ringtoneTimer !== null) {
 
     window.clearInterval(
       ringtoneTimer
@@ -1021,25 +1123,12 @@ function stopRingtone() {
   }
 
 
-  if (audioContext) {
-
-    audioContext
-      .close()
-      .catch(() => {});
-
-    audioContext = null;
-  }
-
-
-  if (navigator.vibrate) {
-
-    navigator.vibrate(0);
-  }
+  stopFakeCallVibration();
 }
 
 
 /* =====================================================
-   FAKE CALL
+   OPEN FAKE CALL
 ===================================================== */
 
 function openFakeCall() {
@@ -1049,69 +1138,201 @@ function openFakeCall() {
   }
 
 
-  const c =
-    contact('guardian') || {
-      name: 'Trusted Contact'
-    };
+  /*
+   * Get the guardian/trusted person's name.
+   */
+
+  const guardian =
+    contact('guardian');
 
 
-  els.callName.textContent =
-    c.name || 'Trusted Contact';
+  const callerName =
+    guardian?.name ||
+    currentUser?.trustedName ||
+    'Trusted Contact';
 
 
-  els.callStatus.textContent =
-    'Ringing…';
+  /*
+   * Set caller information.
+   */
+
+  if (els.callName) {
+
+    els.callName.textContent =
+      callerName;
+  }
 
 
-  els.incomingCallScreen.hidden =
-    false;
+  if (els.callStatus) {
+
+    els.callStatus.textContent =
+      'Incoming call…';
+  }
 
 
-  els.pickupScreen.hidden =
-    true;
+  /*
+   * Show incoming-call screen.
+   */
+
+  if (els.incomingCallScreen) {
+
+    els.incomingCallScreen.hidden =
+      false;
+  }
 
 
-  els.callModal.classList.remove(
-    'hidden'
-  );
+  /*
+   * Hide connected-call screen.
+   */
+
+  if (els.pickupScreen) {
+
+    els.pickupScreen.hidden =
+      true;
+  }
 
 
-  els.callModal.setAttribute(
-    'aria-hidden',
-    'false'
-  );
+  /*
+   * Open modal.
+   */
+
+  if (els.callModal) {
+
+    els.callModal.classList.remove(
+      'hidden'
+    );
+
+    els.callModal.setAttribute(
+      'aria-hidden',
+      'false'
+    );
+  }
 
 
-  playRingtone();
-}
+  /*
+   * Start ringing.
+   */
 
-
-function answerFakeCall() {
-
-  stopRingtone();
-
-
-  els.incomingCallScreen.hidden =
-    true;
-
-
-  els.pickupScreen.hidden =
-    false;
-
-
-  els.callStatus.textContent =
-    'Connected';
+  startFakeCallRingtone();
 
 
   addActivity(
-    'Fake safety call answered.'
+    `📞 Incoming fake call from ${callerName}.`
   );
 }
 
 
+/* =====================================================
+   ANSWER FAKE CALL
+===================================================== */
+
+function answerFakeCall() {
+
+  /*
+   * Stop ringing immediately.
+   */
+
+  stopFakeCallRingtone();
+
+
+  /*
+   * Hide incoming-call controls.
+   */
+
+  if (els.incomingCallScreen) {
+
+    els.incomingCallScreen.hidden =
+      true;
+  }
+
+
+  /*
+   * Show connected-call UI.
+   */
+
+  if (els.pickupScreen) {
+
+    els.pickupScreen.hidden =
+      false;
+  }
+
+
+  /*
+   * Update call status.
+   */
+
+  if (els.callStatus) {
+
+    els.callStatus.textContent =
+      'Connected';
+  }
+
+
+  addActivity(
+    '📞 Fake call answered.'
+  );
+}
+
+
+/* =====================================================
+   CLOSE / DECLINE FAKE CALL
+===================================================== */
+
 function closeFakeCall() {
 
-  stopRingtone();
+  /*
+   * Always stop ringtone.
+   */
+
+  stopFakeCallRingtone();
+
+
+  /*
+   * Close modal.
+   */
+
+  if (els.callModal) {
+
+    els.callModal.classList.add(
+      'hidden'
+    );
+
+    els.callModal.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+  }
+
+
+  /*
+   * Reset screens.
+   */
+
+  if (els.incomingCallScreen) {
+
+    els.incomingCallScreen.hidden =
+      false;
+  }
+
+
+  if (els.pickupScreen) {
+
+    els.pickupScreen.hidden =
+      true;
+  }
+
+
+  if (els.callStatus) {
+
+    els.callStatus.textContent =
+      'Incoming call…';
+  }
+
+
+  addActivity(
+    '📞 Fake call ended.'
+  );
+}
 
 
   els.callModal.classList.add(
