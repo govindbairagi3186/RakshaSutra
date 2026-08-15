@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <meta
+    name="theme-color"
+    content="#07111f"
+  />
+
+  <title>RakshaSutra | Register</title>
+
+  <link
+    rel="icon"
+    href="favicon.png"
+    type="image/png"
+  />
+
+  <link
+    rel="stylesheet"
+    href="styles.css"
+  />
+
+  <link
+    rel="stylesheet"
+    href="pwa.css"
+  />
+
+  <style>
+    .auth-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .auth-logo img {
+      width: min(280px, 75%);
+      max-height: 90px;
+      object-fit: contain;
+    }
+
+    .auth-card {
+      padding: 30px;
+    }
+
+    .auth-title {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+
+    .auth-subtitle {
+      text-align: center;
+      opacity: 0.75;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .auth-section {
+      margin-top: 28px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .auth-section h3 {
+      margin-bottom: 6px;
+    }
+
+    .section-description {
+      opacity: 0.7;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .auth-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .auth-form input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 13px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: inherit;
+      outline: none;
+      font-size: 15px;
+    }
+
+    .auth-form input:focus {
+      border-color: rgba(255,255,255,0.45);
+    }
+
+    .auth-button {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .auth-message {
+      min-height: 22px;
+      text-align: center;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .auth-login {
+      text-align: center;
+      margin-top: 22px;
+      opacity: 0.85;
+    }
+
+    .auth-login a {
+      font-weight: 700;
+    }
+
+    .back-home {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      opacity: 0.8;
+    }
+
+    .privacy-note {
+      margin-top: 22px;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      font-size: 13px;
+      line-height: 1.55;
+      opacity: 0.8;
+    }
+
+    @media (max-width: 650px) {
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .auth-card {
+        padding: 22px;
+      }
+
+      .auth-title {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+
+<body>
+
+  <div class="auth-page">
+
+    <div class="auth-container">
+
+
+      <!-- ================= LOGO ================= -->
+
+      <div class="auth-logo">
+
+        <img
+          src="rakshasutra-logo.png"
+          alt="RakshaSutra"
+        />
+
+      </div>
+
+
+      <!-- ================= REGISTER CARD ================= -->
+
+      <div class="card auth-card">
+
+        <h1 class="auth-title">
+          Create Your RakshaSutra Account
+        </h1>
+
+        <p class="auth-subtitle">
+          Complete this setup once. After registration,
+          future logins require only your email and password.
+        </p>
+
+
+        <!-- ================= REGISTER FORM ================= -->
+
+        <form
+          class="auth-form"
+          id="registerForm"
+        >
+
+
+          <!-- ================= PERSONAL DETAILS ================= -->
+
+          <div class="auth-section">
+
+            <h3>
+              👤 Personal Details
+            </h3>
+
+            <p class="section-description">
+              These details are saved with your safety profile.
+            </p>
+
+
+            <div class="form-grid">
+
+              <!-- FULL NAME -->
+
+              <label for="fullName">
+
+                Full Name
+
+                <input
+                  id="fullName"
+                  name="fullName"
+                  type="text"
+                  placeholder="Enter your full name"
+                  autocomplete="name"
+                  required
+                />
+
+              </label>
+
+
+              <!-- EMAIL -->
+
+              <label for="email">
+
+                Email Address
+
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  autocomplete="email"
+                  required
+                />
+
+              </label>
+
+
+              <!-- PHONE -->
+
+              <label for="phone">
+
+                Mobile Number
+
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="Enter your mobile number"
+                  autocomplete="tel"
+                  required
+                />
+
+              </label>
+
+
+              <!-- PASSWORD -->
+
+              <label for="password">
+
+                Password
+
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Create a password"
+                  autocomplete="new-password"
+                  minlength="6"
+                  required
+                />
+
+              </label>
+
+            </div>
+
+          </div>
+
+
+          <!-- ================= GUARDIAN ================= -->
+
+          <div class="auth-section">
+
+            <h3>
+              👨‍👩‍👧 Guardian Contact
+            </h3>
+
+            <p class="section-description">
+              This trusted person can receive your prepared
+              SOS message.
+            </p>
+
+
+            <div class="form-grid">
+
+              <label for="guardianName">
+
+                Guardian Name
+
+                <input
+                  id="guardianName"
+                  name="guardianName"
+                  type="text"
+                  placeholder="Guardian name"
+                  required
+                />
+
+              </label>
+
+
+              <label for="guardianPhone">
+
+                Guardian Mobile Number
+
+                <input
+                  id="guardianPhone"
+                  name="guardianPhone"
+                  type="tel"
+                  placeholder="Guardian phone number"
+                  required
+                />
+
+              </label>
+
+            </div>
+
+          </div>
+
+
+          <!-- ================= TRUSTED CONTACT ================= -->
+
+          <div class="auth-section">
+
+            <h3>
+              🛡️ Trusted Contact
+            </h3>
+
+            <p class="section-description">
+              Add another trusted person for emergency
+              communication.
+            </p>
+
+
+            <div class="form-grid">
+
+              <label for="trustedName">
+
+                Trusted Person Name
+
+                <input
+                  id="trustedName"
+                  name="trustedName"
+                  type="text"
+                  placeholder="Trusted person name"
+                  required
+                />
+
+              </label>
+
+
+              <label for="trustedPhone">
+
+                Trusted Person Mobile Number
+
+                <input
+                  id="trustedPhone"
+                  name="trustedPhone"
+                  type="tel"
+                  placeholder="Trusted phone number"
+                  required
+                />
+
+              </label>
+
+
+              <label for="trustedAddress">
+
+                Safe Address
+
+                <input
+                  id="trustedAddress"
+                  name="trustedAddress"
+                  type="text"
+                  placeholder="Optional safe address"
+                />
+
+              </label>
+
+            </div>
+
+          </div>
+
+
+          <!-- ================= SUBMIT ================= -->
+
+          <button
+            class="primary-btn auth-button"
+            type="submit"
+          >
+            🛡️ Create RakshaSutra Account
+          </button>
+
+
+          <!-- ================= MESSAGE ================= -->
+
+          <p
+            class="auth-message"
+            id="registerMessage"
+            aria-live="polite"
+          ></p>
+
+        </form>
+
+
+        <!-- ================= LOGIN ================= -->
+
+        <div class="auth-login">
+
+          Already have an account?
+
+          <a href="login.html">
+            Log in
+          </a>
+
+        </div>
+
+
+        <!-- ================= PRIVACY ================= -->
+
+        <div class="privacy-note">
+
+          🔒 <strong>Privacy:</strong>
+          Your name, mobile number and trusted-contact
+          information are collected during registration so
+          RakshaSutra can prepare emergency messages.
+          You will not need to enter these details every
+          time you log in.
+
+        </div>
+
+      </div>
+
+
+      <!-- ================= HOME ================= -->
+
+      <a
+        class="back-home"
+        href="index.html"
+      >
+        ← Back to RakshaSutra
+      </a>
+
+    </div>
+
+  </div>
+
+
+  <!-- ================= REGISTER JAVASCRIPT ================= -->
+
+  <script
+    type="module"
+    src="register.js"
+  ></script>
+
+</body>
+
+</html>
