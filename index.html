@@ -3,18 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RakshaSutra | Your Digital Bodyguard</title>
-    <meta
-      name="description"
-      content="RakshaSutra is a personal safety app with SOS, voice support, live sharing, and AI-driven risk detection."
-    />
+    <meta name="theme-color" content="#07111f" />
+    <meta name="description" content="RakshaSutra is a personal safety app with SOS, voice support, live sharing, and AI-driven risk detection." />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="pwa.css" />
+    <title>RakshaSutra | Your Digital Bodyguard</title>
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
         <div class="brand">
-          <span class="brand-badge">🛡️</span>
+          <img class="brand-logo" src="icon-192.png" alt="RakshaSutra logo" />
           <div>
             <h1>RakshaSutra</h1>
             <p>Digital bodyguard</p>
@@ -79,5 +81,7 @@
         </section>
       </main>
     </div>
+
+    <script src="pwa.js" defer></script>
   </body>
 </html>
