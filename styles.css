@@ -714,3 +714,33 @@ a {
   opacity: 0.45;
   cursor: not-allowed;
 }
+/* =====================================================
+   EMERGENCY NUMBER SPACING
+===================================================== */
+
+.emergency-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.emergency-list .full {
+  min-height: 58px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .emergency-list {
+    gap: 12px;
+  }
+
+  .emergency-list .full {
+    min-height: 62px;
+    padding: 15px;
+  }
+}
