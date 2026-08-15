@@ -1,49 +1,54 @@
 import { createUser, authenticateUser } from './auth.js';
 import { addIncident, readUsers } from './dataStore.js';
 
-const riskScoreElement = document.getElementById('riskScore');
-const locationText = document.getElementById('locationText');
-const coordsText = document.getElementById('coordsText');
-const activityList = document.getElementById('activityList');
-const statusNote = document.getElementById('statusNote');
-const callModal = document.getElementById('callModal');
-const callName = document.getElementById('callName');
-const callStatus = document.getElementById('callStatus');
-const incomingCallScreen = document.getElementById('incomingCallScreen');
-const pickupScreen = document.getElementById('pickupScreen');
-const pickupName = document.getElementById('pickupName');
-const pickupStatus = document.getElementById('pickupStatus');
-const answerCallBtn = document.getElementById('answerCallBtn');
-const declineCallBtn = document.getElementById('declineCallBtn');
-const endCallBtn = document.getElementById('endCallBtn');
-const toast = document.getElementById('toast');
-const authView = document.getElementById('authView');
-const dashboardView = document.getElementById('dashboardView');
-const authForm = document.getElementById('authForm');
-const authTitle = document.getElementById('authTitle');
-const authSwitch = document.getElementById('authSwitch');
-const submitAuthBtn = document.getElementById('submitAuthBtn');
-const formMessage = document.getElementById('formMessage');
-const signupExtras = document.getElementById('signupExtras');
-const userBadge = document.getElementById('userBadge');
-const authHint = document.getElementById('authHint');
-const logoutBtn = document.getElementById('logoutBtn');
-const guardianName = document.getElementById('guardianName');
-const guardianPhone = document.getElementById('guardianPhone');
-const trustedName = document.getElementById('trustedName');
-const trustedPhone = document.getElementById('trustedPhone');
-const trustedAddress = document.getElementById('trustedAddress');
+const $ = (id) => document.getElementById(id);
+const riskScoreElement = $('riskScore');
+const locationText = $('locationText');
+const coordsText = $('coordsText');
+const activityList = $('activityList');
+const statusNote = $('statusNote');
+const callModal = $('callModal');
+const callName = $('callName');
+const callStatus = $('callStatus');
+const incomingCallScreen = $('incomingCallScreen');
+const pickupScreen = $('pickupScreen');
+const pickupName = $('pickupName');
+const pickupStatus = $('pickupStatus');
+const answerCallBtn = $('answerCallBtn');
+const declineCallBtn = $('declineCallBtn');
+const endCallBtn = $('endCallBtn');
+const toast = $('toast');
+const authView = $('authView');
+const dashboardView = $('dashboardView');
+const authForm = $('authForm');
+const authTitle = $('authTitle');
+const authSwitch = $('authSwitch');
+const submitAuthBtn = $('submitAuthBtn');
+const formMessage = $('formMessage');
+const signupExtras = $('signupExtras');
+const userBadge = $('userBadge');
+const authHint = $('authHint');
+const logoutBtn = $('logoutBtn');
+const guardianName = $('guardianName');
+const guardianPhone = $('guardianPhone');
+const trustedName = $('trustedName');
+const trustedPhone = $('trustedPhone');
+const trustedAddress = $('trustedAddress');
 
 const SESSION_KEY = 'rakshasutra-current-user';
 let riskScore = 24;
 let isSignupMode = true;
 let currentUser = null;
-const contacts = ['Mom', 'Brother', 'Trusted Friend'];
+let sosActive = false;
+let locationWatchId = null;
+let lastPosition = null;
+let lastLocationSentAt = 0;
+const LOCATION_INTERVAL_MS = 30000;
 
-function updateRiskScore() {
-  if (riskScoreElement) {
-    riskScoreElement.textContent = String(riskScore);
-  }
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
 function addActivity(message) {
@@ -52,59 +57,220 @@ function addActivity(message) {
   activityList.prepend(item);
 }
 
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.remove('hidden');
-  setTimeout(() => {
-    toast.classList.add('hidden');
-  }, 2200);
+function updateRiskScore() {
+  if (riskScoreElement) riskScoreElement.textContent = String(riskScore);
 }
 
 function ensureAuthenticated(action) {
   if (!currentUser) {
-    showToast('Register or log in to unlock safety features.');
+    showToast('Register or log in first.');
     statusNote.textContent = 'Register or log in to unlock safety controls.';
     return false;
   }
-
-  if (action) {
-    statusNote.textContent = `${action} is now active for ${currentUser.fullName.split(' ')[0]}.`;
-  }
+  if (action) statusNote.textContent = `${action} is active for ${currentUser.fullName.split(' ')[0]}.`;
   return true;
 }
 
 function persistSession(user) {
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem(SESSION_KEY, user.id);
-  }
+  localStorage.setItem(SESSION_KEY, user.id);
 }
 
 function clearSession() {
-  if (typeof window !== 'undefined') {
-    window.localStorage.removeItem(SESSION_KEY);
-  }
+  localStorage.removeItem(SESSION_KEY);
 }
 
 function restoreSession() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const savedId = window.localStorage.getItem(SESSION_KEY);
-  if (!savedId) {
-    return;
-  }
-
+  const savedId = localStorage.getItem(SESSION_KEY);
+  if (!savedId) return;
   const savedUser = readUsers().find((user) => user.id === savedId);
-  if (savedUser) {
-    setCurrentUser(savedUser);
+  if (savedUser) setCurrentUser(savedUser);
+}
+
+function getPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('This device/browser does not provide GPS.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    });
+  });
+}
+
+function positionPayload(position) {
+  return {
+    latitude: Number(position.coords.latitude.toFixed(6)),
+    longitude: Number(position.coords.longitude.toFixed(6)),
+    accuracy: Math.round(position.coords.accuracy || 0),
+    timestamp: new Date().toISOString()
+  };
+}
+
+function updateLocationUI(position) {
+  const p = positionPayload(position);
+  lastPosition = p;
+  locationText.textContent = 'GPS location active';
+  coordsText.textContent = `${p.latitude}, ${p.longitude} · ±${p.accuracy}m`;
+}
+
+async function sendEmergency(action, position = lastPosition) {
+  if (!currentUser) throw new Error('Please log in first.');
+
+  const payload = {
+    action,
+    contactName: currentUser.guardianName || currentUser.trustedName || 'Emergency contact',
+    contactPhone: currentUser.guardianPhone || currentUser.trustedPhone,
+    userName: currentUser.fullName,
+    ...(position || {})
+  };
+
+  const response = await fetch('/api/sos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.ok) {
+    throw new Error(data.error || 'Emergency service is unavailable.');
+  }
+  return data;
+}
+
+function startLiveLocation() {
+  if (!navigator.geolocation || locationWatchId !== null) return;
+
+  locationWatchId = navigator.geolocation.watchPosition(
+    async (position) => {
+      updateLocationUI(position);
+
+      if (!sosActive) return;
+      const now = Date.now();
+      if (now - lastLocationSentAt < LOCATION_INTERVAL_MS) return;
+      lastLocationSentAt = now;
+
+      try {
+        await sendEmergency('location', lastPosition);
+        addActivity('Live GPS update sent to the emergency contact.');
+      } catch (error) {
+        addActivity(`GPS update could not be sent: ${error.message}`);
+      }
+    },
+    (error) => {
+      coordsText.textContent = `GPS error: ${error.message}`;
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+}
+
+function stopLiveLocation() {
+  if (locationWatchId !== null) {
+    navigator.geolocation.clearWatch(locationWatchId);
+    locationWatchId = null;
   }
 }
 
+async function triggerRealSOS() {
+  if (!ensureAuthenticated('Emergency SOS')) return;
+
+  const emergencyPhone = currentUser.guardianPhone || currentUser.trustedPhone;
+  if (!emergencyPhone) {
+    showToast('Add a guardian or trusted phone number first.');
+    statusNote.textContent = 'No emergency contact number is saved.';
+    return;
+  }
+
+  const button = $('sosBtn');
+  button.disabled = true;
+  button.textContent = '⏳ Getting GPS...';
+
+  try {
+    let position;
+    try {
+      position = await getPosition();
+      updateLocationUI(position);
+    } catch {
+      position = null;
+      statusNote.textContent = 'GPS unavailable. Sending SOS without coordinates.';
+    }
+
+    button.textContent = '🚨 Sending SOS...';
+    const result = await sendEmergency('sos', position ? lastPosition : null);
+
+    sosActive = true;
+    startLiveLocation();
+    riskScore = Math.min(100, riskScore + 25);
+    updateRiskScore();
+
+    statusNote.textContent = 'REAL SOS sent. Emergency SMS sent and emergency call requested.';
+    addActivity('REAL SOS activated. Emergency contact notified.');
+    addIncident({
+      type: 'sos',
+      message: 'Real SOS activated and emergency contact notification requested.',
+      latitude: lastPosition?.latitude ?? null,
+      longitude: lastPosition?.longitude ?? null
+    });
+
+    showToast(result.message);
+    button.textContent = '🛑 Stop SOS';
+  } catch (error) {
+    statusNote.textContent = error.message;
+    showToast(error.message);
+    button.textContent = '🚨 One-Tap SOS';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function stopSOS() {
+  if (!currentUser || !sosActive) return;
+
+  try {
+    await sendEmergency('stop', lastPosition);
+  } catch (error) {
+    showToast(`SOS stop notification failed: ${error.message}`);
+  }
+
+  sosActive = false;
+  stopLiveLocation();
+  $('sosBtn').textContent = '🚨 One-Tap SOS';
+  statusNote.textContent = 'SOS ended. Your emergency contact was notified.';
+  addActivity('SOS ended.');
+  addIncident({ type: 'sos-stop', message: 'SOS ended.' });
+}
+
+async function handleSOS() {
+  if (sosActive) {
+    await stopSOS();
+  } else {
+    await triggerRealSOS();
+  }
+}
+
+function shareLocation() {
+  if (!ensureAuthenticated('Location sharing')) return;
+
+  getPosition().then(async (position) => {
+    updateLocationUI(position);
+    try {
+      await sendEmergency('location', lastPosition);
+      addActivity('Current GPS location sent to the emergency contact.');
+      showToast('Location sent to your emergency contact.');
+    } catch (error) {
+      showToast(error.message);
+    }
+  }).catch((error) => {
+    showToast(`GPS unavailable: ${error.message}`);
+  });
+}
+
 function showCallModal() {
-  const caller = contacts[Math.floor(Math.random() * contacts.length)];
-  callName.textContent = caller;
-  callStatus.textContent = 'Ringing • tap answer to continue';
+  callName.textContent = currentUser?.guardianName || currentUser?.trustedName || 'Emergency contact';
+  callStatus.textContent = 'Demo call screen';
   incomingCallScreen.hidden = false;
   pickupScreen.hidden = true;
   callModal.classList.remove('hidden');
@@ -112,55 +278,18 @@ function showCallModal() {
 }
 
 function answerCall() {
-  if (!ensureAuthenticated('Your safe call')) {
-    return;
-  }
+  if (!ensureAuthenticated('Safe call')) return;
   incomingCallScreen.hidden = true;
   pickupScreen.hidden = false;
   pickupName.textContent = 'Safe Exit Mode';
-  pickupStatus.textContent = 'A calm call is now active. Move to a safe place and keep your route visible.';
-  callStatus.textContent = 'Connected';
-  addActivity('Incoming call answered. You are now in a safe-call flow.');
-  addIncident({ type: 'call', message: 'Incoming call answered.' });
-  showToast('Call answered. Stay calm and move to a safe place.');
+  pickupStatus.textContent = 'This is the existing simulated call screen.';
+  addActivity('Simulated safe-call screen opened.');
+  addIncident({ type: 'call', message: 'Simulated call screen opened.' });
 }
 
 function declineCall() {
   callModal.classList.add('hidden');
   callModal.setAttribute('aria-hidden', 'true');
-  addActivity('Incoming call declined. Your safety flow continues.');
-  showToast('Call dismissed.');
-}
-
-function shareLocation() {
-  if (!ensureAuthenticated('Live location sharing')) {
-    return;
-  }
-
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude.toFixed(5);
-        const lon = position.coords.longitude.toFixed(5);
-        const accuracy = Math.round(position.coords.accuracy || 0);
-        const accuracyLabel = accuracy <= 25 ? 'High-precision GPS' : accuracy <= 100 ? 'Moderate GPS' : 'Open area recommended for better accuracy';
-        locationText.textContent = 'Live location shared';
-        coordsText.textContent = `${lat}, ${lon} · ±${accuracy}m · ${accuracyLabel}`;
-        statusNote.textContent = 'Location updated with high-accuracy GPS. Trusted contacts are notified.';
-        showToast('Location shared with trusted contacts.');
-        addActivity('Live location sharing enabled with your emergency circle.');
-        addIncident({ type: 'location', message: 'Location shared with trusted contacts.' });
-      },
-      () => {
-        locationText.textContent = 'Bengaluru, Karnataka';
-        coordsText.textContent = 'Lat 12.9716 · Lon 77.5946 · GPS unavailable';
-        showToast('Location sharing is ready. GPS unavailable on this device.');
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-  } else {
-    showToast('Location sharing is ready. GPS unavailable on this device.');
-  }
 }
 
 function renderAuthMode() {
@@ -168,17 +297,16 @@ function renderAuthMode() {
     authTitle.textContent = 'Create your account';
     submitAuthBtn.textContent = 'Create account';
     authSwitch.textContent = 'Already have an account?';
-    authHint.textContent = 'Create an account to unlock one-tap SOS, live location sharing, and safety controls.';
+    authHint.textContent = 'Create an account to unlock real SOS, GPS location, and emergency-contact alerts.';
   } else {
     authTitle.textContent = 'Log in to RakshaSutra';
     submitAuthBtn.textContent = 'Log in';
     authSwitch.textContent = 'Need to create an account?';
-    authHint.textContent = 'Log in with your registered account to keep using your safety tools.';
+    authHint.textContent = 'Log in with your registered account.';
   }
 
   signupExtras.hidden = !isSignupMode;
-  const requiredFields = document.querySelectorAll('#authForm input[required]');
-  requiredFields.forEach((input) => {
+  document.querySelectorAll('#authForm input[required]').forEach((input) => {
     input.required = isSignupMode ? true : input.id === 'email' || input.id === 'password';
   });
 }
@@ -219,7 +347,7 @@ function setCurrentUser(user) {
     persistSession(user);
     showDashboard();
     renderGuardianPanel();
-    statusNote.textContent = 'Your account is active. Safety controls are unlocked.';
+    statusNote.textContent = 'Account active. Real emergency controls are available after backend setup.';
   } else {
     hideDashboard();
     renderGuardianPanel();
@@ -229,17 +357,7 @@ function setCurrentUser(user) {
 function handleAuthSubmit(event) {
   event.preventDefault();
   const formData = new FormData(authForm);
-  const profile = {
-    fullName: formData.get('fullName') || document.getElementById('fullName').value,
-    email: formData.get('email') || document.getElementById('email').value,
-    phone: formData.get('phone') || document.getElementById('phone').value,
-    password: formData.get('password') || document.getElementById('password').value,
-    guardianName: formData.get('guardianName') || document.getElementById('guardianName').value,
-    guardianPhone: formData.get('guardianPhone') || document.getElementById('guardianPhone').value,
-    trustedName: formData.get('trustedName') || document.getElementById('trustedName').value,
-    trustedAddress: formData.get('trustedAddress') || document.getElementById('trustedAddress').value,
-    trustedPhone: formData.get('trustedPhone') || document.getElementById('trustedPhone').value
-  };
+  const profile = Object.fromEntries(formData.entries());
 
   if (isSignupMode) {
     try {
@@ -259,57 +377,33 @@ function handleAuthSubmit(event) {
   if (authenticated) {
     setCurrentUser(authenticated);
     formMessage.textContent = 'Login successful.';
-    showToast('Welcome back to RakshaSutra.');
+    showToast('Welcome back.');
     authForm.reset();
   } else {
-    formMessage.textContent = 'Invalid credentials. Try again.';
+    formMessage.textContent = 'Invalid credentials.';
     showToast('Invalid credentials.');
   }
 }
 
-document.getElementById('sosBtn').addEventListener('click', () => {
-  if (!ensureAuthenticated('SOS')) {
-    return;
-  }
-  riskScore = Math.min(100, riskScore + 16);
-  updateRiskScore();
-  statusNote.textContent = 'Emergency signal sent. Trusted contacts and nearby helpers are notified.';
-  addActivity('One-tap SOS triggered. Emergency support is on its way.');
-  addIncident({ type: 'sos', message: 'One-tap SOS triggered.' });
-  showToast('SOS triggered. Help is on the way.');
+$('sosBtn').addEventListener('click', handleSOS);
+$('voiceBtn').addEventListener('click', () => {
+  if (!ensureAuthenticated('Voice SOS')) return;
+  showToast('Voice SOS is available as the next upgrade.');
+  addActivity('Voice SOS control activated.');
 });
-
-document.getElementById('voiceBtn').addEventListener('click', () => {
-  if (!ensureAuthenticated('Voice SOS')) {
-    return;
-  }
-  statusNote.textContent = 'Voice SOS is listening for a help command.';
-  addActivity('Voice SOS activated. Speak clearly if you need assistance.');
-  addIncident({ type: 'voice', message: 'Voice SOS activated.' });
-  showToast('Voice SOS activated.');
-});
-
-document.getElementById('callBtn').addEventListener('click', () => {
-  if (!ensureAuthenticated('Call assist')) {
-    return;
-  }
+$('callBtn').addEventListener('click', () => {
+  if (!ensureAuthenticated('Call assist')) return;
   showCallModal();
-  addActivity('Fake incoming call launched to help you exit the situation.');
-  addIncident({ type: 'call', message: 'Fake incoming call launched.' });
 });
-
-document.getElementById('shareBtn').addEventListener('click', shareLocation);
-
-document.getElementById('scanBtn').addEventListener('click', () => {
-  if (!ensureAuthenticated('Safety scan')) {
-    return;
-  }
+$('shareBtn').addEventListener('click', shareLocation);
+$('scanBtn').addEventListener('click', () => {
+  if (!ensureAuthenticated('Safety scan')) return;
   riskScore = Math.min(100, riskScore + Math.floor(Math.random() * 12) + 4);
   updateRiskScore();
-  statusNote.textContent = 'AI scan detected a higher-risk area. Consider a safer route.';
-  addActivity('AI scan updated risk profile for your current surroundings.');
-  addIncident({ type: 'scan', message: 'AI scan completed.' });
-  showToast('AI scan complete.');
+  statusNote.textContent = 'Safety scan completed.';
+  addActivity('Safety scan updated your risk profile.');
+  addIncident({ type: 'scan', message: 'Safety scan completed.' });
+  showToast('Safety scan complete.');
 });
 
 answerCallBtn.addEventListener('click', answerCall);
@@ -317,16 +411,16 @@ declineCallBtn.addEventListener('click', declineCall);
 endCallBtn.addEventListener('click', () => {
   callModal.classList.add('hidden');
   callModal.setAttribute('aria-hidden', 'true');
-  showToast('Call ended.');
 });
 
 logoutBtn.addEventListener('click', () => {
+  stopLiveLocation();
+  sosActive = false;
   currentUser = null;
   clearSession();
   authForm.reset();
-  formMessage.textContent = 'You have been logged out.';
-  showToast('Logged out successfully.');
   setCurrentUser(null);
+  showToast('Logged out successfully.');
 });
 
 authSwitch.addEventListener('click', () => {
