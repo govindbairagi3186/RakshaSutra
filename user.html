@@ -2,147 +2,595 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
     <meta name="theme-color" content="#07111f" />
+
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
     <title>RakshaSutra | User App</title>
+
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="pwa.css" />
   </head>
+
   <body>
     <div class="app-shell">
+
+      <!-- ================= HEADER ================= -->
       <header class="topbar">
         <div class="brand brand-with-logo">
-          <img class="brand-logo-full" src="rakshasutra-logo.png" alt="RakshaSutra - Your Safety, Our Promise" />
+          <img
+            class="brand-logo-full"
+            src="rakshasutra-logo.png"
+            alt="RakshaSutra - Your Safety, Our Promise"
+          />
         </div>
+
         <div class="topbar-actions">
           <a class="ghost-button" href="index.html">Home</a>
-          <a class="ghost-button" href="admin.html">Admin</a>
-          <button class="ghost-button" id="logoutBtn" type="button" hidden>Log out</button>
+
+          <a class="ghost-button" href="admin.html">
+            Admin Panel
+          </a>
+
+          <button
+            class="ghost-button"
+            id="logoutBtn"
+            type="button"
+          >
+            Log out
+          </button>
         </div>
       </header>
 
       <main>
-        <section class="auth-grid" id="authView">
-          <div class="card auth-card">
-            <div class="card-head">
-              <h3 id="authTitle">Create your account</h3>
-              <span class="pill active" id="authSwitch">Already have an account?</span>
-            </div>
-            <form id="authForm" class="auth-form">
-              <p class="form-hint" id="authHint">Create an account or log in to unlock SOS, live location sharing, and safety controls.</p>
-              <div class="form-grid">
-                <label>Full name<input type="text" id="fullName" name="fullName" required /></label>
-                <label>Email<input type="email" id="email" name="email" required /></label>
-                <label>Phone number<input type="tel" id="phone" name="phone" required /></label>
-                <label>Password<input type="password" id="password" name="password" required /></label>
-              </div>
-              <div class="divider"></div>
-              <div id="signupExtras">
-                <h4>Guardian contact</h4>
-                <div class="form-grid">
-                  <label>Guardian name<input type="text" id="guardianName" name="guardianName" required /></label>
-                  <label>Guardian phone<input type="tel" id="guardianPhone" name="guardianPhone" required /></label>
-                </div>
-                <h4>Trusted friend / person</h4>
-                <div class="form-grid">
-                  <label>Trusted person name<input type="text" id="trustedName" name="trustedName" required /></label>
-                  <label>Address<input type="text" id="trustedAddress" name="trustedAddress" required /></label>
-                  <label>Trusted phone<input type="tel" id="trustedPhone" name="trustedPhone" required /></label>
-                </div>
-              </div>
-              <button class="primary-btn full" type="submit" id="submitAuthBtn">Create account</button>
-              <p class="form-message" id="formMessage"></p>
-            </form>
-          </div>
-        </section>
 
-        <section class="dashboard-grid" id="dashboardView" hidden>
-          <div class="card status-card" id="sos">
+        <!-- ================= DASHBOARD ================= -->
+        <section
+          class="dashboard-grid"
+          id="dashboardView"
+        >
+
+          <!-- ================= SOS CARD ================= -->
+          <div
+            class="card status-card"
+            id="sos"
+          >
             <div class="card-head">
-              <h3>Guardian controls</h3>
-              <span class="pill subtle" id="userBadge">Ready</span>
+              <h3>Emergency Controls</h3>
+
+              <span
+                class="pill subtle"
+                id="userBadge"
+              >
+                Protected
+              </span>
             </div>
+
             <div class="control-buttons">
-              <button class="primary-btn" id="sosBtn">🚨 One-Tap SOS</button>
-              <button class="secondary-btn" id="voiceBtn">🎙️ Voice SOS</button>
-              <button class="secondary-btn" id="callBtn">📞 Fake Call</button>
-              <button class="secondary-btn" id="shareBtn">📍 Share Location</button>
+
+              <button
+                class="primary-btn"
+                id="sosBtn"
+                type="button"
+              >
+                🚨 One-Tap SOS
+              </button>
+
+              <button
+                class="secondary-btn"
+                id="voiceBtn"
+                type="button"
+              >
+                🎙️ Voice SOS
+              </button>
+
+              <button
+                class="secondary-btn"
+                id="callBtn"
+                type="button"
+              >
+                📞 Fake Call
+              </button>
+
+              <button
+                class="secondary-btn"
+                id="shareBtn"
+                type="button"
+              >
+                📍 Share Location
+              </button>
+
             </div>
+
             <div class="status-summary">
-              <div class="status-pill"><span>Risk score</span><strong id="riskScore">24</strong></div>
-              <div class="status-pill"><span>Location</span><strong id="locationText">Live location shared</strong><small id="coordsText">Lat 12.9716 · Lon 77.5946</small></div>
+
+              <div class="status-pill">
+                <span>Risk score</span>
+                <strong id="riskScore">24</strong>
+              </div>
+
+              <div class="status-pill">
+                <span>Location</span>
+
+                <strong id="locationText">
+                  Waiting for GPS
+                </strong>
+
+                <small id="coordsText">
+                  Location permission required
+                </small>
+              </div>
+
             </div>
-            <div class="status-note" id="statusNote">Safe route approved. Your guardian mode is active.</div>
+
+            <div
+              class="status-note"
+              id="statusNote"
+            >
+              Your emergency controls are ready.
+            </div>
           </div>
 
+
+          <!-- ================= EMERGENCY NUMBERS ================= -->
           <div class="card route-card">
-            <div class="card-head"><h3>Safe route preview</h3><span class="pill active">Fastest path</span></div>
-            <div class="route-map">
-              <div class="route-line"></div>
-              <div class="map-node home">Home</div>
-              <div class="map-node work">Work</div>
-              <div class="map-node safe">Safe stop</div>
+
+            <div class="card-head">
+              <h3>Emergency Numbers</h3>
+
+              <span class="pill active">
+                India
+              </span>
             </div>
-            <ul class="route-points">
-              <li>Well-lit corridor to the main road</li>
-              <li>Nearby police booth detected</li>
-              <li>Trusted contact notified on delay</li>
-            </ul>
+
+            <div class="emergency-list">
+
+              <a
+                class="secondary-btn full"
+                href="tel:112"
+              >
+                🚨 112 — Integrated Emergency
+              </a>
+
+              <a
+                class="secondary-btn full"
+                href="tel:100"
+              >
+                👮 100 — Police
+              </a>
+
+              <a
+                class="secondary-btn full"
+                href="tel:101"
+              >
+                🔥 101 — Fire Brigade
+              </a>
+
+              <a
+                class="secondary-btn full"
+                href="tel:108"
+              >
+                🚑 108 — Ambulance
+              </a>
+
+              <a
+                class="secondary-btn full"
+                href="tel:1091"
+              >
+                👩 1091 — Women Police Helpline
+              </a>
+
+              <a
+                class="secondary-btn full"
+                href="tel:181"
+              >
+                🛡️ 181 — Women Helpline
+              </a>
+
+              <a
+                class="secondary-btn full"
+                href="tel:1098"
+              >
+                🧒 1098 — Child Helpline
+              </a>
+
+            </div>
+
           </div>
+
         </section>
 
+
+        <!-- ================= GUARDIAN PANEL ================= -->
         <section class="card guardian-card">
-          <div class="card-head"><h3>Guardian panel</h3><span class="pill active">Protected circle</span></div>
-          <div class="guardian-grid">
-            <div class="guardian-item"><span>Guardian</span><strong id="guardianNameDisplay">—</strong><p id="guardianPhoneDisplay">—</p></div>
-            <div class="guardian-item"><span>Trusted contact</span><strong id="trustedNameDisplay">—</strong><p id="trustedPhoneDisplay">—</p></div>
-            <div class="guardian-item"><span>Safe address</span><strong id="trustedAddressDisplay">—</strong></div>
+
+          <div class="card-head">
+            <h3>Guardian Panel</h3>
+
+            <span class="pill active">
+              Protected Circle
+            </span>
           </div>
+
+          <div class="guardian-grid">
+
+            <div class="guardian-item">
+              <span>Guardian</span>
+
+              <strong id="guardianNameDisplay">
+                —
+              </strong>
+
+              <p id="guardianPhoneDisplay">
+                —
+              </p>
+
+              <button
+                class="secondary-btn small"
+                id="guardianSmsBtn"
+                type="button"
+              >
+                💬 Send SOS SMS
+              </button>
+            </div>
+
+
+            <div class="guardian-item">
+              <span>Trusted Contact</span>
+
+              <strong id="trustedNameDisplay">
+                —
+              </strong>
+
+              <p id="trustedPhoneDisplay">
+                —
+              </p>
+
+              <button
+                class="secondary-btn small"
+                id="trustedSmsBtn"
+                type="button"
+              >
+                💬 Send SOS SMS
+              </button>
+            </div>
+
+
+            <div class="guardian-item">
+              <span>Safe Address</span>
+
+              <strong id="trustedAddressDisplay">
+                —
+              </strong>
+            </div>
+
+          </div>
+
         </section>
 
-        <section class="features-grid" id="features">
-          <article class="card feature-card"><h3>One-Tap & Voice SOS</h3><p>Send help immediately with a button or a spoken command.</p></article>
-          <article class="card feature-card"><h3>Live location sharing</h3><p>Broadcast your movement to trusted contacts in real time.</p></article>
-          <article class="card feature-card"><h3>AI risk detection</h3><p>Adaptive safety checks suggest when you should avoid a route.</p></article>
-          <article class="card feature-card"><h3>Fake incoming calls</h3><p>Create a believable call to help you leave a tense situation.</p></article>
+
+        <!-- ================= FEATURES ================= -->
+        <section
+          class="features-grid"
+          id="features"
+        >
+
+          <article class="card feature-card">
+            <h3>One-Tap & Voice SOS</h3>
+
+            <p>
+              Activate emergency mode quickly and access
+              police, ambulance, fire and other emergency
+              services.
+            </p>
+          </article>
+
+
+          <article class="card feature-card">
+            <h3>Live Location Sharing</h3>
+
+            <p>
+              Get your current GPS position and prepare
+              a location message for your trusted contacts.
+            </p>
+          </article>
+
+
+          <article class="card feature-card">
+            <h3>AI Risk Detection</h3>
+
+            <p>
+              Adaptive safety checks can help identify
+              potentially unsafe situations.
+            </p>
+          </article>
+
+
+          <article class="card feature-card">
+            <h3>Fake Incoming Calls</h3>
+
+            <p>
+              Receive a simulated incoming call inside
+              RakshaSutra without opening the real dialer.
+            </p>
+          </article>
+
         </section>
 
+
+        <!-- ================= ACTIVITY ================= -->
         <section class="card activity-card">
-          <div class="card-head"><h3>Guardian activity</h3><button class="ghost-button small" id="scanBtn">Run AI Scan</button></div>
+
+          <div class="card-head">
+
+            <h3>
+              Guardian Activity
+            </h3>
+
+            <button
+              class="ghost-button small"
+              id="scanBtn"
+              type="button"
+            >
+              Run AI Scan
+            </button>
+
+          </div>
+
           <ul id="activityList">
-            <li>Safe route approved for your evening commute.</li>
-            <li>Emergency mode is active and ready to escalate.</li>
+
+            <li>
+              Emergency mode is ready.
+            </li>
+
+            <li>
+              Trusted contacts are available.
+            </li>
+
           </ul>
+
         </section>
+
       </main>
     </div>
 
-    <div class="modal hidden" id="callModal" aria-hidden="true">
+
+    <!-- ================================================= -->
+    <!-- EMERGENCY CENTER -->
+    <!-- ================================================= -->
+
+    <div
+      class="modal hidden"
+      id="emergencyModal"
+      aria-hidden="true"
+    >
+
       <div class="modal-card">
-        <div id="incomingCallScreen">
-          <p class="call-label">Incoming call</p>
-          <div class="call-avatar">📞</div>
-          <h3 id="callName">Mom</h3>
-          <p id="callStatus">Ringing • tap answer to continue</p>
-          <div class="call-actions">
-            <button class="secondary-btn" id="declineCallBtn" type="button">Decline</button>
-            <button class="primary-btn" id="answerCallBtn" type="button">Answer</button>
-          </div>
+
+        <div class="card-head">
+
+          <h3>
+            🚨 Emergency Center
+          </h3>
+
+          <button
+            class="ghost-button small"
+            id="closeEmergencyBtn"
+            type="button"
+          >
+            Close
+          </button>
+
         </div>
-        <div id="pickupScreen" hidden>
-          <p class="call-label">Connected</p>
-          <div class="call-avatar">🛡️</div>
-          <h3 id="pickupName">Safe Exit Mode</h3>
-          <p id="pickupStatus">A calm call is now active. Move to a safe place and keep your route visible.</p>
-          <button class="secondary-btn full" id="endCallBtn" type="button">End call</button>
+
+
+        <div class="status-note">
+
+          <strong>SOS Mode Active</strong>
+
+          <p id="emergencySummary">
+            Your emergency controls are ready.
+          </p>
+
         </div>
+
+
+        <h4>
+          Emergency Services
+        </h4>
+
+        <div class="emergency-list">
+
+          <a
+            class="primary-btn full"
+            href="tel:112"
+          >
+            🚨 Call 112 — Emergency
+          </a>
+
+          <a
+            class="secondary-btn full"
+            href="tel:100"
+          >
+            👮 Call 100 — Police
+          </a>
+
+          <a
+            class="secondary-btn full"
+            href="tel:101"
+          >
+            🔥 Call 101 — Fire Brigade
+          </a>
+
+          <a
+            class="secondary-btn full"
+            href="tel:108"
+          >
+            🚑 Call 108 — Ambulance
+          </a>
+
+          <a
+            class="secondary-btn full"
+            href="tel:1091"
+          >
+            👩 Call 1091 — Women Police
+          </a>
+
+          <a
+            class="secondary-btn full"
+            href="tel:181"
+          >
+            🛡️ Call 181 — Women Helpline
+          </a>
+
+        </div>
+
+
+        <h4>
+          Trusted Contacts
+        </h4>
+
+        <div class="emergency-list">
+
+          <button
+            class="secondary-btn full"
+            id="guardianEmergencySmsBtn"
+            type="button"
+          >
+            💬 Send SOS to Guardian
+          </button>
+
+          <button
+            class="secondary-btn full"
+            id="trustedEmergencySmsBtn"
+            type="button"
+          >
+            💬 Send SOS to Trusted Contact
+          </button>
+
+        </div>
+
       </div>
+
     </div>
 
-    <div class="toast hidden" id="toast"></div>
-    <script type="module" src="user.js"></script>
+
+    <!-- ================================================= -->
+    <!-- FAKE CALL MODAL -->
+    <!-- ================================================= -->
+
+    <div
+      class="modal hidden"
+      id="callModal"
+      aria-hidden="true"
+    >
+
+      <div class="modal-card fake-call-card">
+
+        <!-- INCOMING CALL -->
+
+        <div id="incomingCallScreen">
+
+          <p class="call-label">
+            Incoming call
+          </p>
+
+          <div class="call-avatar">
+            🛡️
+          </div>
+
+          <h3 id="callName">
+            Guardian
+          </h3>
+
+          <p id="callStatus">
+            Ringing…
+          </p>
+
+
+          <div class="call-actions">
+
+            <button
+              class="secondary-btn"
+              id="declineCallBtn"
+              type="button"
+            >
+              Decline
+            </button>
+
+            <button
+              class="primary-btn"
+              id="answerCallBtn"
+              type="button"
+            >
+              Answer
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- CONNECTED FAKE CALL -->
+
+        <div
+          id="pickupScreen"
+          hidden
+        >
+
+          <p class="call-label">
+            Call connected
+          </p>
+
+          <div class="call-avatar">
+            🛡️
+          </div>
+
+          <h3 id="pickupName">
+            RakshaSutra Safety Call
+          </h3>
+
+          <p id="pickupStatus">
+            This is a simulated safety call.
+            You can use it to leave an uncomfortable
+            situation and move somewhere safe.
+          </p>
+
+          <button
+            class="secondary-btn full"
+            id="endCallBtn"
+            type="button"
+          >
+            End Fake Call
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================= TOAST ================= -->
+
+    <div
+      class="toast hidden"
+      id="toast"
+    ></div>
+
+
+    <!-- ================= JAVASCRIPT ================= -->
+
+    <script
+      type="module"
+      src="user.js"
+    ></script>
+
   </body>
 </html>
