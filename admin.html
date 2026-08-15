@@ -3,18 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07111f" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <title>RakshaSutra | Admin Portal</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="pwa.css" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <div class="brand">
-          <span class="brand-badge">🛡️</span>
-          <div>
-            <h1>RakshaSutra</h1>
-            <p>Admin control center</p>
-          </div>
+        <div class="brand brand-with-logo">
+          <img class="brand-logo-full" src="rakshasutra-logo.png" alt="RakshaSutra - Your Safety, Our Promise" />
         </div>
         <div class="topbar-actions">
           <a class="ghost-button" href="index.html">Home</a>
@@ -37,18 +38,12 @@
           <div id="adminLoginPanel" class="admin-login-card">
             <div class="admin-info-card">
               <p>Admin access</p>
-              <strong>govind / govindraksha1</strong>
+              <strong>Admin authentication</strong>
             </div>
             <h4>Admin access</h4>
             <form id="adminLoginForm" class="auth-form">
-              <label>
-                Username
-                <input type="text" id="adminUsername" required />
-              </label>
-              <label>
-                Password
-                <input type="password" id="adminPassword" required />
-              </label>
+              <label>Username<input type="text" id="adminUsername" required /></label>
+              <label>Password<input type="password" id="adminPassword" required /></label>
               <button class="primary-btn full" type="submit">Enter admin panel</button>
               <p id="adminLoginMessage" class="form-message"></p>
             </form>
@@ -68,10 +63,7 @@
             </div>
             <div class="admin-actions">
               <button class="secondary-btn" id="exportIncidentsBtn">Export incidents</button>
-              <label class="secondary-btn import-label">
-                Import incidents
-                <input type="file" id="importIncidentsInput" accept="application/json" />
-              </label>
+              <label class="secondary-btn import-label">Import incidents<input type="file" id="importIncidentsInput" accept="application/json" /></label>
             </div>
           </div>
         </section>
@@ -79,7 +71,6 @@
     </div>
 
     <div class="toast hidden" id="toast"></div>
-
     <script type="module" src="admin-logic.js"></script>
   </body>
 </html>
