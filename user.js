@@ -1,4 +1,10 @@
-import { addIncident, readUsers } from './dataStore.js';
+import {
+  addIncident,
+  readUsers,
+  resolveActiveSOS,
+  updateIncident
+} from './dataStore.js';
+
 
 const $ = (id) => document.getElementById(id);
 
@@ -50,17 +56,25 @@ const els = {
   endCallBtn: $('endCallBtn')
 };
 
+
+/* =====================================================
+   STATE
+===================================================== */
+
 let currentUser = null;
 let lastPosition = null;
 
 let sosActive = false;
 let locationWatchId = null;
 
+let activeSosIncidentId = null;
+
 let sosStartedAt = null;
 let sosTimerInterval = null;
 
 let ringtoneTimer = null;
 let audioContext = null;
+let ringtoneStarted = false;
 
 
 /* =====================================================
@@ -68,16 +82,33 @@ let audioContext = null;
 ===================================================== */
 
 function showToast(message) {
-  if (!els.toast) return;
 
-  els.toast.textContent = message;
-  els.toast.classList.remove('hidden');
+  if (!els.toast) {
+    return;
+  }
 
-  window.clearTimeout(showToast.timer);
+  els.toast.textContent =
+    message;
 
-  showToast.timer = window.setTimeout(() => {
-    els.toast.classList.add('hidden');
-  }, 3200);
+  els.toast.classList.remove(
+    'hidden'
+  );
+
+  window.clearTimeout(
+    showToast.timer
+  );
+
+  showToast.timer =
+    window.setTimeout(
+      () => {
+
+        els.toast.classList.add(
+          'hidden'
+        );
+
+      },
+      3200
+    );
 }
 
 
@@ -86,13 +117,20 @@ function showToast(message) {
 ===================================================== */
 
 function addActivity(message) {
-  if (!els.activityList) return;
 
-  const item = document.createElement('li');
+  if (!els.activityList) {
+    return;
+  }
 
-  item.textContent = message;
+  const item =
+    document.createElement('li');
 
-  els.activityList.prepend(item);
+  item.textContent =
+    message;
+
+  els.activityList.prepend(
+    item
+  );
 }
 
 
@@ -101,51 +139,84 @@ function addActivity(message) {
 ===================================================== */
 
 function saveSession(user) {
+
   localStorage.setItem(
     SESSION_KEY,
     JSON.stringify({
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      phone: user.phone,
 
-      guardianName: user.guardianName,
-      guardianPhone: user.guardianPhone,
+      id:
+        user.id,
 
-      trustedName: user.trustedName,
-      trustedPhone: user.trustedPhone,
+      email:
+        user.email,
 
-      trustedAddress: user.trustedAddress
+      fullName:
+        user.fullName,
+
+      phone:
+        user.phone,
+
+      guardianName:
+        user.guardianName,
+
+      guardianPhone:
+        user.guardianPhone,
+
+      trustedName:
+        user.trustedName,
+
+      trustedPhone:
+        user.trustedPhone,
+
+      trustedAddress:
+        user.trustedAddress
+
     })
   );
 }
 
 
 function loadSession() {
+
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
 
-    if (!raw) return null;
+    const raw =
+      localStorage.getItem(
+        SESSION_KEY
+      );
 
-    const snapshot = JSON.parse(raw);
+    if (!raw) {
+      return null;
+    }
 
-    const users = readUsers();
+    const snapshot =
+      JSON.parse(raw);
 
-    const latest = users.find(
-      (user) => user.id === snapshot.id
-    );
+    const users =
+      readUsers();
+
+    const latest =
+      users.find(
+        (user) =>
+          user.id === snapshot.id
+      );
 
     return latest || snapshot;
 
   } catch {
+
     return null;
   }
 }
 
 
 function requireLogin() {
+
   if (!currentUser) {
-    window.location.href = 'login.html';
+
+    window.location.href =
+      'login.html';
+
     return false;
   }
 
@@ -158,24 +229,48 @@ function requireLogin() {
 ===================================================== */
 
 function contact(kind) {
-  if (!currentUser) return null;
+
+  if (!currentUser) {
+    return null;
+  }
 
   if (kind === 'guardian') {
+
     return {
-      name: currentUser.guardianName || 'Guardian',
-      phone: currentUser.guardianPhone || ''
+
+      name:
+        currentUser.guardianName ||
+        'Guardian',
+
+      phone:
+        currentUser.guardianPhone ||
+        ''
+
     };
   }
 
   return {
-    name: currentUser.trustedName || 'Trusted Contact',
-    phone: currentUser.trustedPhone || ''
+
+    name:
+      currentUser.trustedName ||
+      'Trusted Contact',
+
+    phone:
+      currentUser.trustedPhone ||
+      ''
+
   };
 }
 
 
 function cleanPhone(phone) {
-  return String(phone || '').replace(/[^0-9+]/g, '');
+
+  return String(
+    phone || ''
+  ).replace(
+    /[^0-9+]/g,
+    ''
+  );
 }
 
 
@@ -184,53 +279,79 @@ function cleanPhone(phone) {
 ===================================================== */
 
 function getPosition() {
-  return new Promise((resolve, reject) => {
 
-    if (!navigator.geolocation) {
-      reject(
-        new Error('GPS is not available in this browser.')
+  return new Promise(
+    (resolve, reject) => {
+
+      if (!navigator.geolocation) {
+
+        reject(
+          new Error(
+            'GPS is not available in this browser.'
+          )
+        );
+
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+
+        resolve,
+
+        reject,
+
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        }
+
       );
 
-      return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      resolve,
-      reject,
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-      }
-    );
-  });
+  );
 }
 
 
 function setPosition(position) {
 
+  if (!position?.coords) {
+    return;
+  }
+
+
   lastPosition = {
+
     latitude:
-      Number(position.coords.latitude.toFixed(6)),
+      Number(
+        position.coords.latitude.toFixed(6)
+      ),
 
     longitude:
-      Number(position.coords.longitude.toFixed(6)),
+      Number(
+        position.coords.longitude.toFixed(6)
+      ),
 
     accuracy:
-      Math.round(position.coords.accuracy || 0),
+      Math.round(
+        position.coords.accuracy || 0
+      ),
 
     timestamp:
       new Date().toISOString()
+
   };
 
 
   if (els.locationText) {
+
     els.locationText.textContent =
       'LIVE GPS ACTIVE';
   }
 
 
   if (els.coordsText) {
+
     els.coordsText.textContent =
       `${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`;
   }
@@ -243,7 +364,11 @@ function mapsLink() {
     return '';
   }
 
-  return `https://maps.google.com/?q=${lastPosition.latitude},${lastPosition.longitude}`;
+  return (
+    `https://maps.google.com/?q=` +
+    `${lastPosition.latitude},` +
+    `${lastPosition.longitude}`
+  );
 }
 
 
@@ -254,6 +379,7 @@ function mapsLink() {
 function buildMessage() {
 
   return [
+
     '🚨 RAKSHASUTRA SOS ALERT',
 
     `${currentUser.fullName || 'User'} needs help.`,
@@ -269,6 +395,7 @@ function buildMessage() {
     'RakshaSutra SOS is active.',
 
     'Please contact the user immediately.'
+
   ].join('\n');
 }
 
@@ -280,6 +407,7 @@ function buildMessage() {
 function buildSafeMessage() {
 
   return [
+
     '🟢 RAKSHASUTRA SAFETY UPDATE',
 
     `${currentUser.fullName || 'The user'} has confirmed that they are safe.`,
@@ -291,6 +419,7 @@ function buildSafeMessage() {
     'Location sharing has been stopped.',
 
     'No further action is required.'
+
   ].join('\n');
 }
 
@@ -299,16 +428,23 @@ function buildSafeMessage() {
    SMS
 ===================================================== */
 
-function smsTo(kind, message = buildMessage()) {
+function smsTo(
+  kind,
+  message = buildMessage()
+) {
 
-  const c = contact(kind);
+  const c =
+    contact(kind);
+
 
   if (!c?.phone) {
 
     showToast(
-      `${kind === 'guardian'
-        ? 'Guardian'
-        : 'Trusted contact'} phone number is not saved.`
+      `${
+        kind === 'guardian'
+          ? 'Guardian'
+          : 'Trusted contact'
+      } phone number is not saved.`
     );
 
     return;
@@ -316,7 +452,9 @@ function smsTo(kind, message = buildMessage()) {
 
 
   const body =
-    encodeURIComponent(message);
+    encodeURIComponent(
+      message
+    );
 
 
   window.location.href =
@@ -330,17 +468,25 @@ function smsTo(kind, message = buildMessage()) {
 
 function openEmergencyModal() {
 
-  if (!els.emergencyModal) return;
-
-  els.emergencySummary.textContent =
-    lastPosition
-
-      ? `SOS ACTIVE • GPS: ${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`
-
-      : 'SOS ACTIVE • Waiting for GPS location.';
+  if (!els.emergencyModal) {
+    return;
+  }
 
 
-  els.emergencyModal.classList.remove('hidden');
+  if (els.emergencySummary) {
+
+    els.emergencySummary.textContent =
+      lastPosition
+
+        ? `SOS ACTIVE • GPS: ${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`
+
+        : 'SOS ACTIVE • Waiting for GPS location.';
+  }
+
+
+  els.emergencyModal.classList.remove(
+    'hidden'
+  );
 
   els.emergencyModal.setAttribute(
     'aria-hidden',
@@ -351,9 +497,14 @@ function openEmergencyModal() {
 
 function closeEmergencyModal() {
 
-  if (!els.emergencyModal) return;
+  if (!els.emergencyModal) {
+    return;
+  }
 
-  els.emergencyModal.classList.add('hidden');
+
+  els.emergencyModal.classList.add(
+    'hidden'
+  );
 
   els.emergencyModal.setAttribute(
     'aria-hidden',
@@ -372,6 +523,7 @@ function startLiveLocation() {
     !navigator.geolocation ||
     locationWatchId !== null
   ) {
+
     return;
   }
 
@@ -381,15 +533,54 @@ function startLiveLocation() {
 
       (position) => {
 
-        setPosition(position);
+        setPosition(
+          position
+        );
+
 
         if (sosActive) {
 
           if (els.sosState) {
+
             els.sosState.textContent =
               '🔴 SOS ACTIVE • LIVE GPS';
           }
+
+
+          /*
+           * Update the SAME SOS incident
+           * with the newest GPS coordinates.
+           */
+
+          if (activeSosIncidentId) {
+
+            updateIncident(
+
+              activeSosIncidentId,
+
+              {
+
+                latitude:
+                  lastPosition?.latitude ??
+                  null,
+
+                longitude:
+                  lastPosition?.longitude ??
+                  null,
+
+                accuracy:
+                  lastPosition?.accuracy ??
+                  null,
+
+                lastLocationUpdate:
+                  new Date().toISOString()
+
+              }
+
+            );
+          }
         }
+
       },
 
       (error) => {
@@ -398,20 +589,28 @@ function startLiveLocation() {
           'Live GPS error:',
           error
         );
+
       },
 
       {
+
         enableHighAccuracy: true,
+
         maximumAge: 5000,
+
         timeout: 15000
+
       }
+
     );
 }
 
 
 function stopLiveLocation() {
 
-  if (locationWatchId !== null) {
+  if (
+    locationWatchId !== null
+  ) {
 
     navigator.geolocation.clearWatch(
       locationWatchId
@@ -426,17 +625,23 @@ function stopLiveLocation() {
    5-MINUTE TIMER
 ===================================================== */
 
-function formatTime(milliseconds) {
+function formatTime(
+  milliseconds
+) {
 
   const totalSeconds =
     Math.max(
       0,
-      Math.ceil(milliseconds / 1000)
+      Math.ceil(
+        milliseconds / 1000
+      )
     );
 
 
   const minutes =
-    Math.floor(totalSeconds / 60);
+    Math.floor(
+      totalSeconds / 60
+    );
 
 
   const seconds =
@@ -444,25 +649,34 @@ function formatTime(milliseconds) {
 
 
   return (
+
     `${String(minutes).padStart(2, '0')}:` +
+
     `${String(seconds).padStart(2, '0')}`
+
   );
 }
 
 
 function updateSosTimer() {
 
-  if (!sosActive || !sosStartedAt) {
+  if (
+    !sosActive ||
+    !sosStartedAt
+  ) {
+
     return;
   }
 
 
   const elapsed =
-    Date.now() - sosStartedAt;
+    Date.now() -
+    sosStartedAt;
 
 
   const remaining =
-    SOS_DURATION - elapsed;
+    SOS_DURATION -
+    elapsed;
 
 
   if (remaining > 0) {
@@ -476,7 +690,8 @@ function updateSosTimer() {
 
     if (els.safeBtn) {
 
-      els.safeBtn.disabled = true;
+      els.safeBtn.disabled =
+        true;
 
       els.safeBtn.textContent =
         `🟢 ARE YOU SAFE NOW? (${formatTime(remaining)})`;
@@ -487,10 +702,6 @@ function updateSosTimer() {
   }
 
 
-  /* ---------------------------------------------
-     FIVE MINUTES COMPLETED
-  --------------------------------------------- */
-
   if (els.sosTimer) {
 
     els.sosTimer.textContent =
@@ -500,7 +711,8 @@ function updateSosTimer() {
 
   if (els.safeBtn) {
 
-    els.safeBtn.disabled = false;
+    els.safeBtn.disabled =
+      false;
 
     els.safeBtn.textContent =
       '🟢 ARE YOU SAFE NOW?';
@@ -510,7 +722,8 @@ function updateSosTimer() {
 
 function startSosTimer() {
 
-  sosStartedAt = Date.now();
+  sosStartedAt =
+    Date.now();
 
 
   window.clearInterval(
@@ -535,9 +748,11 @@ function stopSosTimer() {
     sosTimerInterval
   );
 
-  sosTimerInterval = null;
+  sosTimerInterval =
+    null;
 
-  sosStartedAt = null;
+  sosStartedAt =
+    null;
 }
 
 
@@ -557,16 +772,20 @@ async function triggerSOS() {
   }
 
 
-  els.sosBtn.disabled = true;
+  if (els.sosBtn) {
 
-  els.sosBtn.textContent =
-    '⏳ Activating SOS…';
+    els.sosBtn.disabled =
+      true;
+
+    els.sosBtn.textContent =
+      '⏳ Activating SOS…';
+  }
 
 
   try {
 
     /* ---------------------------------------------
-       GET FIRST GPS FIX
+       FIRST GPS FIX
     --------------------------------------------- */
 
     try {
@@ -574,7 +793,9 @@ async function triggerSOS() {
       const position =
         await getPosition();
 
-      setPosition(position);
+      setPosition(
+        position
+      );
 
     } catch (error) {
 
@@ -592,18 +813,19 @@ async function triggerSOS() {
        ACTIVATE SOS
     --------------------------------------------- */
 
-    sosActive = true;
+    sosActive =
+      true;
 
 
     /* ---------------------------------------------
-       START LIVE GPS IMMEDIATELY
+       START LIVE GPS
     --------------------------------------------- */
 
     startLiveLocation();
 
 
     /* ---------------------------------------------
-       START 5-MINUTE SAFETY TIMER
+       START 5-MINUTE TIMER
     --------------------------------------------- */
 
     startSosTimer();
@@ -613,12 +835,18 @@ async function triggerSOS() {
        UPDATE UI
     --------------------------------------------- */
 
-    els.sosBtn.textContent =
-      '🛑 SOS ACTIVE';
+    if (els.sosBtn) {
+
+      els.sosBtn.textContent =
+        '🛑 SOS ACTIVE';
+    }
 
 
-    els.statusNote.textContent =
-      '🚨 SOS ACTIVE. Live GPS tracking is running.';
+    if (els.statusNote) {
+
+      els.statusNote.textContent =
+        '🚨 SOS ACTIVE. Live GPS tracking is running.';
+    }
 
 
     if (els.sosState) {
@@ -629,28 +857,54 @@ async function triggerSOS() {
 
 
     /* ---------------------------------------------
-       RECORD INCIDENT
+       CREATE ACTIVE SOS INCIDENT
     --------------------------------------------- */
 
-    addIncident({
+    const sosIncident =
+      addIncident({
 
-      type: 'sos',
+        type:
+          'sos',
 
-      message:
-        'SOS activated. Live GPS session started.',
+        message:
+          'SOS activated. Live GPS session started.',
 
-      latitude:
-        lastPosition?.latitude ?? null,
+        userId:
+          currentUser.id,
 
-      longitude:
-        lastPosition?.longitude ?? null,
+        userEmail:
+          currentUser.email,
 
-      status:
-        'active',
+        userName:
+          currentUser.fullName,
 
-      startedAt:
-        new Date().toISOString()
-    });
+        latitude:
+          lastPosition?.latitude ??
+          null,
+
+        longitude:
+          lastPosition?.longitude ??
+          null,
+
+        accuracy:
+          lastPosition?.accuracy ??
+          null,
+
+        status:
+          'active',
+
+        startedAt:
+          new Date().toISOString()
+
+      });
+
+
+    /*
+     * Remember the incident ID.
+     */
+
+    activeSosIncidentId =
+      sosIncident.id;
 
 
     addActivity(
@@ -674,9 +928,30 @@ async function triggerSOS() {
     openEmergencyModal();
 
 
+  } catch (error) {
+
+    console.error(
+      'SOS activation error:',
+      error
+    );
+
+    sosActive =
+      false;
+
+    stopLiveLocation();
+    stopSosTimer();
+
+    showToast(
+      'Unable to activate SOS.'
+    );
+
   } finally {
 
-    els.sosBtn.disabled = false;
+    if (els.sosBtn) {
+
+      els.sosBtn.disabled =
+        false;
+    }
   }
 }
 
@@ -698,17 +973,21 @@ function confirmSafe() {
 
 
   const elapsed =
-    Date.now() - sosStartedAt;
+    Date.now() -
+    sosStartedAt;
 
 
   /* ---------------------------------------------
      REQUIRE FIVE MINUTES
   --------------------------------------------- */
 
-  if (elapsed < SOS_DURATION) {
+  if (
+    elapsed < SOS_DURATION
+  ) {
 
     const remaining =
-      SOS_DURATION - elapsed;
+      SOS_DURATION -
+      elapsed;
 
 
     showToast(
@@ -720,40 +999,66 @@ function confirmSafe() {
 
 
   /* ---------------------------------------------
-     STOP LIVE GPS
+     RESOLVE THE SAME SOS INCIDENT
   --------------------------------------------- */
+
+  const resolvedIncident =
+    resolveActiveSOS(
+      currentUser.id,
+      lastPosition
+    );
+
+
+  /*
+   * Stop live GPS.
+   */
 
   stopLiveLocation();
 
 
-  /* ---------------------------------------------
-     STOP TIMER
-  --------------------------------------------- */
+  /*
+   * Stop timer.
+   */
 
   stopSosTimer();
 
 
-  /* ---------------------------------------------
-     CHANGE SOS STATE
-  --------------------------------------------- */
+  /*
+   * Change local SOS state.
+   */
 
-  sosActive = false;
+  sosActive =
+    false;
+
+
+  /*
+   * Clear active incident ID.
+   */
+
+  activeSosIncidentId =
+    null;
 
 
   /* ---------------------------------------------
      UPDATE BUTTON
   --------------------------------------------- */
 
-  els.sosBtn.textContent =
-    '🚨 One-Tap SOS';
+  if (els.sosBtn) {
+
+    els.sosBtn.textContent =
+      '🚨 One-Tap SOS';
+  }
 
 
   /* ---------------------------------------------
      UPDATE STATUS
   --------------------------------------------- */
 
-  els.statusNote.textContent =
-    '🟢 You are safe. SOS resolved and live location sharing stopped.';
+  if (els.statusNote) {
+
+    els.statusNote.textContent =
+      '🟢 You are safe. SOS resolved and live location sharing stopped.';
+  }
 
 
   if (els.sosState) {
@@ -772,7 +1077,8 @@ function confirmSafe() {
 
   if (els.safeBtn) {
 
-    els.safeBtn.disabled = true;
+    els.safeBtn.disabled =
+      true;
 
     els.safeBtn.textContent =
       '🟢 YOU ARE SAFE';
@@ -780,34 +1086,21 @@ function confirmSafe() {
 
 
   /* ---------------------------------------------
-     RECORD RESOLUTION
+     ACTIVITY
   --------------------------------------------- */
 
-  addIncident({
+  if (resolvedIncident) {
 
-    type:
-      'sos-resolved',
+    addActivity(
+      '🟢 Active SOS marked as resolved.'
+    );
 
-    message:
-      'User confirmed they are safe. Live GPS stopped.',
+  } else {
 
-    latitude:
-      lastPosition?.latitude ?? null,
-
-    longitude:
-      lastPosition?.longitude ?? null,
-
-    status:
-      'resolved',
-
-    resolvedAt:
-      new Date().toISOString()
-  });
-
-
-  addActivity(
-    '🟢 Safety confirmed. Live GPS stopped.'
-  );
+    addActivity(
+      '🟡 Safety confirmed, but no active SOS record was found.'
+    );
+  }
 
 
   /* ---------------------------------------------
@@ -820,9 +1113,10 @@ function confirmSafe() {
 
 
   /*
-   * We intentionally use the phone's SMS composer here.
-   * A browser cannot silently send SMS messages without
-   * user permission.
+   * Browser security does not allow a website
+   * to silently send an SMS.
+   *
+   * This opens the phone's SMS composer.
    */
 
   smsTo(
@@ -843,19 +1137,74 @@ function stopSOS() {
   }
 
 
+  /*
+   * Stop GPS.
+   */
+
   stopLiveLocation();
+
+
+  /*
+   * Stop timer.
+   */
 
   stopSosTimer();
 
-  sosActive = false;
+
+  /*
+   * If manually stopped before the
+   * safety confirmation, mark the
+   * active incident as stopped.
+   */
+
+  if (activeSosIncidentId) {
+
+    updateIncident(
+
+      activeSosIncidentId,
+
+      {
+
+        status:
+          'stopped',
+
+        stoppedAt:
+          new Date().toISOString(),
+
+        finalLatitude:
+          lastPosition?.latitude ??
+          null,
+
+        finalLongitude:
+          lastPosition?.longitude ??
+          null
+
+      }
+
+    );
+  }
 
 
-  els.sosBtn.textContent =
-    '🚨 One-Tap SOS';
+  sosActive =
+    false;
 
 
-  els.statusNote.textContent =
-    'SOS stopped on this device.';
+  activeSosIncidentId =
+    null;
+
+
+  if (els.sosBtn) {
+
+    els.sosBtn.textContent =
+      '🚨 One-Tap SOS';
+  }
+
+
+  if (els.statusNote) {
+
+    els.statusNote.textContent =
+      'SOS stopped on this device.';
+  }
 
 
   if (els.sosState) {
@@ -874,27 +1223,12 @@ function stopSOS() {
 
   if (els.safeBtn) {
 
-    els.safeBtn.disabled = true;
+    els.safeBtn.disabled =
+      true;
 
     els.safeBtn.textContent =
       '🟢 ARE YOU SAFE NOW?';
   }
-
-
-  addIncident({
-
-    type:
-      'sos-stop',
-
-    message:
-      'SOS manually stopped on the device.',
-
-    status:
-      'stopped',
-
-    stoppedAt:
-      new Date().toISOString()
-  });
 
 
   addActivity(
@@ -934,51 +1268,48 @@ function emergencyVoiceCall() {
 
 
 /* =====================================================
-   FAKE CALL — RINGTONE + VIBRATION
+   FAKE CALL — VIBRATION
 ===================================================== */
-
-let ringtoneTimer = null;
-let audioContext = null;
-let ringtoneStarted = false;
-
-
-/* -----------------------------------------------------
-   START VIBRATION
------------------------------------------------------ */
 
 function startFakeCallVibration() {
 
-  if (!navigator.vibrate) {
+  if (
+    typeof navigator.vibrate !==
+    'function'
+  ) {
+
     return;
   }
 
-  // Repeating vibration pattern.
-  navigator.vibrate([
-    500,
-    250,
-    500,
-    250,
-    500,
-    1000
-  ]);
+
+  navigator.vibrate(
+    [
+      500,
+      250,
+      500,
+      250,
+      500,
+      1000
+    ]
+  );
 }
 
 
-/* -----------------------------------------------------
-   STOP VIBRATION
------------------------------------------------------ */
-
 function stopFakeCallVibration() {
 
-  if (navigator.vibrate) {
+  if (
+    typeof navigator.vibrate ===
+    'function'
+  ) {
+
     navigator.vibrate(0);
   }
 }
 
 
-/* -----------------------------------------------------
-   CREATE RINGTONE
------------------------------------------------------ */
+/* =====================================================
+   FAKE CALL — RINGTONE
+===================================================== */
 
 function createRingtoneBeep() {
 
@@ -990,29 +1321,41 @@ function createRingtoneBeep() {
         window.AudioContext ||
         window.webkitAudioContext;
 
+
       if (!AudioContext) {
         return;
       }
 
-      audioContext = new AudioContext();
+
+      audioContext =
+        new AudioContext();
     }
 
 
-    if (audioContext.state === 'suspended') {
+    if (
+      audioContext.state ===
+      'suspended'
+    ) {
 
-      audioContext.resume()
-        .catch(() => {});
+      audioContext
+        .resume()
+        .catch(
+          () => {}
+        );
     }
 
 
     const oscillator =
       audioContext.createOscillator();
 
+
     const gain =
       audioContext.createGain();
 
 
-    oscillator.type = 'sine';
+    oscillator.type =
+      'sine';
+
 
     oscillator.frequency.setValueAtTime(
       880,
@@ -1038,7 +1381,10 @@ function createRingtoneBeep() {
     );
 
 
-    oscillator.connect(gain);
+    oscillator.connect(
+      gain
+    );
+
 
     gain.connect(
       audioContext.destination
@@ -1047,10 +1393,11 @@ function createRingtoneBeep() {
 
     oscillator.start();
 
-    oscillator.stop(
-      audioContext.currentTime + 0.5
-    );
 
+    oscillator.stop(
+      audioContext.currentTime +
+      0.5
+    );
 
   } catch (error) {
 
@@ -1062,64 +1409,65 @@ function createRingtoneBeep() {
 }
 
 
-/* -----------------------------------------------------
-   START RINGTONE
------------------------------------------------------ */
-
 function startFakeCallRingtone() {
 
   stopFakeCallRingtone();
 
-  ringtoneStarted = true;
+
+  ringtoneStarted =
+    true;
 
 
   /*
-   * Initial ring.
+   * First ring.
    */
 
   createRingtoneBeep();
 
 
   /*
-   * Repeat the ringtone.
+   * Continue ringing.
    */
 
   ringtoneTimer =
-    window.setInterval(() => {
+    window.setInterval(
+      () => {
 
-      if (!ringtoneStarted) {
-        return;
-      }
+        if (!ringtoneStarted) {
+          return;
+        }
 
-      createRingtoneBeep();
+        createRingtoneBeep();
 
-    }, 1500);
+      },
+      1500
+    );
 
 
   /*
-   * Start device vibration.
+   * Start vibration.
    */
 
   startFakeCallVibration();
 }
 
 
-/* -----------------------------------------------------
-   STOP RINGTONE
------------------------------------------------------ */
-
 function stopFakeCallRingtone() {
 
-  ringtoneStarted = false;
+  ringtoneStarted =
+    false;
 
 
-  if (ringtoneTimer !== null) {
+  if (
+    ringtoneTimer !== null
+  ) {
 
     window.clearInterval(
       ringtoneTimer
     );
 
-    ringtoneTimer = null;
+    ringtoneTimer =
+      null;
   }
 
 
@@ -1138,10 +1486,6 @@ function openFakeCall() {
   }
 
 
-  /*
-   * Get the guardian/trusted person's name.
-   */
-
   const guardian =
     contact('guardian');
 
@@ -1151,10 +1495,6 @@ function openFakeCall() {
     currentUser?.trustedName ||
     'Trusted Contact';
 
-
-  /*
-   * Set caller information.
-   */
 
   if (els.callName) {
 
@@ -1170,10 +1510,6 @@ function openFakeCall() {
   }
 
 
-  /*
-   * Show incoming-call screen.
-   */
-
   if (els.incomingCallScreen) {
 
     els.incomingCallScreen.hidden =
@@ -1181,20 +1517,12 @@ function openFakeCall() {
   }
 
 
-  /*
-   * Hide connected-call screen.
-   */
-
   if (els.pickupScreen) {
 
     els.pickupScreen.hidden =
       true;
   }
 
-
-  /*
-   * Open modal.
-   */
 
   if (els.callModal) {
 
@@ -1210,7 +1538,7 @@ function openFakeCall() {
 
 
   /*
-   * Start ringing.
+   * Start vibration + ringtone.
    */
 
   startFakeCallRingtone();
@@ -1228,16 +1556,8 @@ function openFakeCall() {
 
 function answerFakeCall() {
 
-  /*
-   * Stop ringing immediately.
-   */
-
   stopFakeCallRingtone();
 
-
-  /*
-   * Hide incoming-call controls.
-   */
 
   if (els.incomingCallScreen) {
 
@@ -1246,20 +1566,12 @@ function answerFakeCall() {
   }
 
 
-  /*
-   * Show connected-call UI.
-   */
-
   if (els.pickupScreen) {
 
     els.pickupScreen.hidden =
       false;
   }
 
-
-  /*
-   * Update call status.
-   */
 
   if (els.callStatus) {
 
@@ -1280,16 +1592,8 @@ function answerFakeCall() {
 
 function closeFakeCall() {
 
-  /*
-   * Always stop ringtone.
-   */
-
   stopFakeCallRingtone();
 
-
-  /*
-   * Close modal.
-   */
 
   if (els.callModal) {
 
@@ -1303,10 +1607,6 @@ function closeFakeCall() {
     );
   }
 
-
-  /*
-   * Reset screens.
-   */
 
   if (els.incomingCallScreen) {
 
@@ -1335,53 +1635,67 @@ function closeFakeCall() {
 }
 
 
-  els.callModal.classList.add(
-    'hidden'
-  );
-
-
-  els.callModal.setAttribute(
-    'aria-hidden',
-    'true'
-  );
-}
-
-
 /* =====================================================
    RENDER USER
 ===================================================== */
 
 function renderUser() {
 
-  els.userBadge.textContent =
-    `Welcome, ${
-      currentUser.fullName?.split(' ')[0] ||
-      'User'
-    }`;
+  if (els.userBadge) {
+
+    els.userBadge.textContent =
+      `Welcome, ${
+        currentUser.fullName?.split(' ')[0] ||
+        'User'
+      }`;
+  }
 
 
-  els.guardianName.textContent =
-    currentUser.guardianName || '—';
+  if (els.guardianName) {
+
+    els.guardianName.textContent =
+      currentUser.guardianName ||
+      '—';
+  }
 
 
-  els.guardianPhone.textContent =
-    currentUser.guardianPhone || '—';
+  if (els.guardianPhone) {
+
+    els.guardianPhone.textContent =
+      currentUser.guardianPhone ||
+      '—';
+  }
 
 
-  els.trustedName.textContent =
-    currentUser.trustedName || '—';
+  if (els.trustedName) {
+
+    els.trustedName.textContent =
+      currentUser.trustedName ||
+      '—';
+  }
 
 
-  els.trustedPhone.textContent =
-    currentUser.trustedPhone || '—';
+  if (els.trustedPhone) {
+
+    els.trustedPhone.textContent =
+      currentUser.trustedPhone ||
+      '—';
+  }
 
 
-  els.trustedAddress.textContent =
-    currentUser.trustedAddress || '—';
+  if (els.trustedAddress) {
+
+    els.trustedAddress.textContent =
+      currentUser.trustedAddress ||
+      '—';
+  }
 
 
-  els.statusNote.textContent =
-    'Account active. Your emergency controls are ready.';
+  if (els.statusNote) {
+
+    els.statusNote.textContent =
+      'Account active. Your emergency controls are ready.';
+  }
 }
 
 
@@ -1389,7 +1703,7 @@ function renderUser() {
    EVENT LISTENERS
 ===================================================== */
 
-els.sosBtn.addEventListener(
+els.sosBtn?.addEventListener(
   'click',
   () => {
 
@@ -1401,6 +1715,7 @@ els.sosBtn.addEventListener(
 
       triggerSOS();
     }
+
   }
 );
 
@@ -1411,19 +1726,23 @@ els.safeBtn?.addEventListener(
 );
 
 
-els.voiceBtn.addEventListener(
+els.voiceBtn?.addEventListener(
   'click',
   emergencyVoiceCall
 );
 
 
-els.callBtn.addEventListener(
+els.callBtn?.addEventListener(
   'click',
   openFakeCall
 );
 
 
-els.shareBtn.addEventListener(
+/* =====================================================
+   SHARE LOCATION
+===================================================== */
+
+els.shareBtn?.addEventListener(
   'click',
   async () => {
 
@@ -1447,14 +1766,24 @@ els.shareBtn.addEventListener(
         message:
           'Location SMS prepared.',
 
+        userId:
+          currentUser.id,
+
+        userEmail:
+          currentUser.email,
+
         latitude:
           lastPosition.latitude,
 
         longitude:
           lastPosition.longitude,
 
+        accuracy:
+          lastPosition.accuracy,
+
         status:
           'prepared'
+
       });
 
 
@@ -1463,7 +1792,9 @@ els.shareBtn.addEventListener(
       );
 
 
-      smsTo('guardian');
+      smsTo(
+        'guardian'
+      );
 
     } catch (error) {
 
@@ -1471,59 +1802,80 @@ els.shareBtn.addEventListener(
         `GPS unavailable: ${error.message}`
       );
     }
+
   }
 );
 
 
-els.guardianSmsBtn.addEventListener(
+/* =====================================================
+   CONTACT SMS
+===================================================== */
+
+els.guardianSmsBtn?.addEventListener(
   'click',
-  () => smsTo('guardian')
+  () =>
+    smsTo('guardian')
 );
 
 
-els.trustedSmsBtn.addEventListener(
+els.trustedSmsBtn?.addEventListener(
   'click',
-  () => smsTo('trusted')
+  () =>
+    smsTo('trusted')
 );
 
 
-els.guardianEmergencySmsBtn.addEventListener(
+els.guardianEmergencySmsBtn?.addEventListener(
   'click',
-  () => smsTo('guardian')
+  () =>
+    smsTo('guardian')
 );
 
 
-els.trustedEmergencySmsBtn.addEventListener(
+els.trustedEmergencySmsBtn?.addEventListener(
   'click',
-  () => smsTo('trusted')
+  () =>
+    smsTo('trusted')
 );
 
 
-els.closeEmergencyBtn.addEventListener(
+/* =====================================================
+   EMERGENCY MODAL
+===================================================== */
+
+els.closeEmergencyBtn?.addEventListener(
   'click',
   closeEmergencyModal
 );
 
 
-els.declineCallBtn.addEventListener(
+/* =====================================================
+   FAKE CALL BUTTONS
+===================================================== */
+
+els.declineCallBtn?.addEventListener(
   'click',
   closeFakeCall
 );
 
 
-els.answerCallBtn.addEventListener(
+els.answerCallBtn?.addEventListener(
   'click',
   answerFakeCall
 );
 
 
-els.endCallBtn.addEventListener(
+els.endCallBtn?.addEventListener(
   'click',
   closeFakeCall
 );
 
 
-els.scanBtn.addEventListener(
+/* =====================================================
+   SAFETY SCAN
+===================================================== */
+
+els.scanBtn?.addEventListener(
   'click',
   () => {
 
@@ -1534,17 +1886,21 @@ els.scanBtn.addEventListener(
 
     const score =
       Number(
-        els.riskScore.textContent || 24
+        els.riskScore?.textContent ||
+        24
       );
 
 
-    els.riskScore.textContent =
-      String(
-        Math.min(
-          100,
-          score + 5
-        )
-      );
+    if (els.riskScore) {
+
+      els.riskScore.textContent =
+        String(
+          Math.min(
+            100,
+            score + 5
+          )
+        );
+    }
 
 
     addIncident({
@@ -1553,7 +1909,17 @@ els.scanBtn.addEventListener(
         'scan',
 
       message:
-        'Safety scan completed.'
+        'Safety scan completed.',
+
+      userId:
+        currentUser.id,
+
+      userEmail:
+        currentUser.email,
+
+      status:
+        'completed'
+
     });
 
 
@@ -1565,6 +1931,7 @@ els.scanBtn.addEventListener(
     showToast(
       'Safety scan complete.'
     );
+
   }
 );
 
@@ -1573,22 +1940,47 @@ els.scanBtn.addEventListener(
    LOGOUT
 ===================================================== */
 
-els.logoutBtn.addEventListener(
+els.logoutBtn?.addEventListener(
   'click',
+  () => {
+
+    /*
+     * Stop everything running on
+     * the current page.
+     */
+
+    stopLiveLocation();
+
+    stopSosTimer();
+
+    stopFakeCallRingtone();
+
+
+    localStorage.removeItem(
+      SESSION_KEY
+    );
+
+
+    window.location.href =
+      'login.html';
+  }
+);
+
+
+/* =====================================================
+   CLEANUP
+===================================================== */
+
+window.addEventListener(
+  'beforeunload',
   () => {
 
     stopLiveLocation();
 
     stopSosTimer();
 
-    stopRingtone();
+    stopFakeCallRingtone();
 
-    localStorage.removeItem(
-      SESSION_KEY
-    );
-
-    window.location.href =
-      'login.html';
   }
 );
 
