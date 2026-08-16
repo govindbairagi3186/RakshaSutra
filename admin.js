@@ -1,3 +1,4 @@
+```javascript
 import {
   addIncident,
   readIncidents,
@@ -10,8 +11,8 @@ import {
 ===================================================== */
 
 const DEFAULT_ADMIN = {
-  username: 'govind',
-  password: 'govindraksha1'
+  username: 'GOVIND',
+  password: 'GOVIND#1'
 };
 
 let adminCredentials = {
@@ -63,7 +64,10 @@ function importIncidents(entries) {
 
   entries.forEach((entry) => {
 
-    if (!entry || typeof entry !== 'object') {
+    if (
+      !entry ||
+      typeof entry !== 'object'
+    ) {
       return;
     }
 
@@ -97,6 +101,10 @@ function importIncidents(entries) {
         entry.userEmail ||
         null,
 
+      userName:
+        entry.userName ||
+        null,
+
       latitude:
         entry.latitude ??
         null,
@@ -105,12 +113,28 @@ function importIncidents(entries) {
         entry.longitude ??
         null,
 
+      accuracy:
+        entry.accuracy ??
+        null,
+
       createdAt:
         entry.createdAt ||
         new Date().toISOString(),
 
+      startedAt:
+        entry.startedAt ||
+        null,
+
       resolvedAt:
         entry.resolvedAt ||
+        null,
+
+      stoppedAt:
+        entry.stoppedAt ||
+        null,
+
+      lastLocationUpdate:
+        entry.lastLocationUpdate ||
         null
     });
 
@@ -150,14 +174,25 @@ function isIncidentActive(incident) {
 
 
   /*
-   * Explicitly resolved incidents
-   * are NOT active.
+   * Resolved incidents are never active.
    */
 
   if (
     incident.status === 'resolved' ||
     incident.resolved === true ||
-    incident.resolvedAt
+    Boolean(incident.resolvedAt)
+  ) {
+    return false;
+  }
+
+
+  /*
+   * Stopped incidents are also not active.
+   */
+
+  if (
+    incident.status === 'stopped' ||
+    Boolean(incident.stoppedAt)
   ) {
     return false;
   }
@@ -165,12 +200,14 @@ function isIncidentActive(incident) {
 
   /*
    * Only SOS incidents count
-   * as emergency alerts.
+   * as active emergency alerts.
    */
 
   return (
-    String(incident.type || '')
-      .toLowerCase() === 'sos'
+    String(
+      incident.type || ''
+    ).toLowerCase() === 'sos' &&
+    incident.status === 'active'
   );
 }
 
@@ -197,9 +234,14 @@ function getAdminOverview() {
   const resolvedAlerts =
     incidents.filter(
       (incident) =>
-        incident.status === 'resolved' ||
-        incident.resolved === true ||
-        Boolean(incident.resolvedAt)
+        String(
+          incident.type || ''
+        ).toLowerCase() === 'sos' &&
+        (
+          incident.status === 'resolved' ||
+          incident.resolved === true ||
+          Boolean(incident.resolvedAt)
+        )
     );
 
 
@@ -237,12 +279,11 @@ function resetAdminState() {
   adminCredentials = {
     ...DEFAULT_ADMIN
   };
-
 }
 
 
 /* =====================================================
-   GET ADMIN CREDENTIALS
+   GET ADMIN USERNAME
 ===================================================== */
 
 function getAdminUsername() {
@@ -272,3 +313,4 @@ export {
   getAdminUsername
 
 };
+```
