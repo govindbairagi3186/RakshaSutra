@@ -1,8 +1,8 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
+
   <meta charset="UTF-8" />
 
   <meta
@@ -34,9 +34,6 @@
   />
 
   <style>
-    /* =========================
-       LOGIN PAGE
-       ========================= */
 
     .auth-page {
       min-height: 100vh;
@@ -130,79 +127,16 @@
       font-weight: 700;
     }
 
-    .forgot-password {
-      display: block;
-      text-align: right;
-      margin-top: -8px;
-      margin-bottom: 2px;
+    .auth-links {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
       font-size: 14px;
+    }
+
+    .auth-links a {
       font-weight: 700;
-      cursor: pointer;
-    }
-
-    .forgot-password:hover {
-      text-decoration: underline;
-    }
-
-    .forgot-panel {
-      margin-top: 20px;
-      padding: 20px;
-      border-radius: 16px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.10);
-    }
-
-    .forgot-panel h3 {
-      margin-top: 0;
-      margin-bottom: 8px;
-    }
-
-    .forgot-panel p {
-      font-size: 13px;
-      line-height: 1.5;
-      opacity: 0.75;
-    }
-
-    .forgot-form {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-top: 16px;
-    }
-
-    .forgot-form label {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .forgot-form input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 12px 13px;
-      border-radius: 11px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.06);
-      color: inherit;
-      outline: none;
-    }
-
-    .forgot-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .forgot-actions button {
-      flex: 1;
-    }
-
-    .forgot-message {
-      min-height: 20px;
-      margin: 0;
-      text-align: center;
-      font-size: 13px;
     }
 
     .back-home {
@@ -222,10 +156,8 @@
       opacity: 0.8;
     }
 
-    .hidden {
-      display: none !important;
-    }
   </style>
+
 </head>
 
 
@@ -234,9 +166,6 @@
   <div class="auth-page">
 
     <div class="auth-container">
-
-
-      <!-- ================= LOGO ================= -->
 
       <div class="auth-logo">
 
@@ -247,8 +176,6 @@
 
       </div>
 
-
-      <!-- ================= LOGIN CARD ================= -->
 
       <div class="card auth-card">
 
@@ -261,14 +188,10 @@
         </p>
 
 
-        <!-- ================= LOGIN FORM ================= -->
-
         <form
           class="auth-form"
           id="loginForm"
         >
-
-          <!-- EMAIL -->
 
           <label for="email">
 
@@ -286,8 +209,6 @@
           </label>
 
 
-          <!-- PASSWORD -->
-
           <label for="password">
 
             Password
@@ -304,19 +225,6 @@
           </label>
 
 
-          <!-- FORGOT PASSWORD -->
-
-          <a
-            href="#"
-            id="forgotPasswordLink"
-            class="forgot-password"
-          >
-            Forgot Password?
-          </a>
-
-
-          <!-- LOGIN BUTTON -->
-
           <button
             class="primary-btn auth-button"
             type="submit"
@@ -324,8 +232,6 @@
             🔐 Log In
           </button>
 
-
-          <!-- MESSAGE -->
 
           <p
             class="auth-message"
@@ -336,133 +242,18 @@
         </form>
 
 
-        <!-- ================= FORGOT PASSWORD PANEL ================= -->
+        <div class="auth-links">
 
-        <div
-          id="forgotPasswordPanel"
-          class="forgot-panel hidden"
-        >
+          <a href="password.html">
+            Forgot password?
+          </a>
 
-          <h3>
-            Reset Password
-          </h3>
-
-          <p>
-            Enter the email registered with your RakshaSutra
-            account and your registered mobile number.
-          </p>
-
-          <form
-            id="forgotPasswordForm"
-            class="forgot-form"
-          >
-
-            <!-- EMAIL -->
-
-            <label for="resetEmail">
-
-              Registered Email
-
-              <input
-                id="resetEmail"
-                type="email"
-                placeholder="Enter your registered email"
-                autocomplete="email"
-                required
-              />
-
-            </label>
-
-
-            <!-- VERIFICATION -->
-
-            <label for="resetVerification">
-
-              Registered Mobile Number
-
-              <input
-                id="resetVerification"
-                type="tel"
-                placeholder="Enter your registered mobile number"
-                autocomplete="tel"
-                required
-              />
-
-            </label>
-
-
-            <!-- NEW PASSWORD -->
-
-            <label for="resetPassword">
-
-              New Password
-
-              <input
-                id="resetPassword"
-                type="password"
-                placeholder="Create a new password"
-                autocomplete="new-password"
-                minlength="6"
-                required
-              />
-
-            </label>
-
-
-            <!-- CONFIRM PASSWORD -->
-
-            <label for="resetPasswordConfirm">
-
-              Confirm New Password
-
-              <input
-                id="resetPasswordConfirm"
-                type="password"
-                placeholder="Confirm your new password"
-                autocomplete="new-password"
-                minlength="6"
-                required
-              />
-
-            </label>
-
-
-            <!-- ACTIONS -->
-
-            <div class="forgot-actions">
-
-              <button
-                class="primary-btn"
-                type="submit"
-              >
-                🔑 Reset Password
-              </button>
-
-              <button
-                class="secondary-btn"
-                id="cancelForgotPassword"
-                type="button"
-              >
-                Cancel
-              </button>
-
-            </div>
-
-
-            <!-- RESET MESSAGE -->
-
-            <p
-              id="forgotPasswordMessage"
-              class="forgot-message"
-              aria-live="polite"
-            ></p>
-
-          </form>
+          <a href="password.html#change">
+            Change password
+          </a>
 
         </div>
 
-
-        <!-- ================= REGISTER ================= -->
 
         <div class="auth-register">
 
@@ -475,20 +266,16 @@
         </div>
 
 
-        <!-- ================= SECURITY NOTE ================= -->
-
         <div class="security-note">
 
-          🔒 Your emergency profile details are entered
-          during registration and do not need to be entered
-          every time you log in.
+          🔒 Your emergency profile details are stored
+          with your account and are not requested again
+          during normal login.
 
         </div>
 
       </div>
 
-
-      <!-- ================= HOME ================= -->
 
       <a
         class="back-home"
@@ -502,8 +289,6 @@
   </div>
 
 
-  <!-- ================= LOGIN JAVASCRIPT ================= -->
-
   <script
     type="module"
     src="login.js"
@@ -512,4 +297,3 @@
 </body>
 
 </html>
-```
