@@ -1,752 +1,735 @@
 ```javascript
-import {
-  authenticateUser,
-  resetPassword
-} from "./auth.js";
+const STORAGE_KEY = 'rakshasutra-users';
 
-
-/*
-=========================================================
-RAKSHA SUTRA - LOGIN + FORGOT PASSWORD
-=========================================================
-
-NORMAL LOGIN:
-- Email
-- Password
-
-FORGOT PASSWORD:
-- Registered email
-- Registered mobile number
-- New password
-- Confirm new password
-
-The current zero-cost version uses the information
-already stored in the browser's RakshaSutra account data.
-
-No full name or mobile number is requested during
-normal login.
-=========================================================
-*/
-
-
-const SESSION_KEY =
-  "rakshasutra-current-user";
+const memoryStore = {};
 
 
 /* =====================================================
-   LOGIN ELEMENTS
+   STORAGE
 ===================================================== */
 
-const loginForm =
-  document.getElementById(
-    "loginForm"
-  );
+function getStorage() {
 
-
-const loginMessage =
-  document.getElementById(
-    "loginMessage"
-  );
-
-
-/* =====================================================
-   FORGOT PASSWORD ELEMENTS
-===================================================== */
-
-const forgotPasswordLink =
-  document.getElementById(
-    "forgotPasswordLink"
-  );
-
-
-const forgotPasswordPanel =
-  document.getElementById(
-    "forgotPasswordPanel"
-  );
-
-
-const forgotPasswordForm =
-  document.getElementById(
-    "forgotPasswordForm"
-  );
-
-
-const forgotPasswordMessage =
-  document.getElementById(
-    "forgotPasswordMessage"
-  );
-
-
-const cancelForgotPassword =
-  document.getElementById(
-    "cancelForgotPassword"
-  );
-
-
-/* =====================================================
-   SAVE LOGIN SESSION
-===================================================== */
-
-function saveSession(user) {
-
-  if (!user) {
-    return;
+  if (
+    typeof window !== 'undefined' &&
+    window.localStorage
+  ) {
+    return window.localStorage;
   }
 
 
-  const sessionUser = {
+  if (
+    typeof globalThis !== 'undefined' &&
+    globalThis.localStorage
+  ) {
+    return globalThis.localStorage;
+  }
+
+
+  return {
+
+    getItem(key) {
+
+      return Object.prototype.hasOwnProperty.call(
+        memoryStore,
+        key
+      )
+        ? memoryStore[key]
+        : null;
+    },
+
+
+    setItem(key, value) {
+
+      memoryStore[key] =
+        String(value);
+    },
+
+
+    removeItem(key) {
+
+      delete memoryStore[key];
+    }
+
+  };
+}
+
+
+/* =====================================================
+   READ USERS
+===================================================== */
+
+function readUsers() {
+
+  try {
+
+    const storage =
+      getStorage();
+
+    const raw =
+      storage.getItem(
+        STORAGE_KEY
+      );
+
+
+    if (!raw) {
+      return [];
+    }
+
+
+    const users =
+      JSON.parse(raw);
+
+
+    return Array.isArray(users)
+      ? users
+      : [];
+
+  } catch (error) {
+
+    console.error(
+      'Unable to read users:',
+      error
+    );
+
+    return [];
+  }
+}
+
+
+/* =====================================================
+   WRITE USERS
+===================================================== */
+
+function writeUsers(users) {
+
+  const storage =
+    getStorage();
+
+
+  storage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(users)
+  );
+}
+
+
+/* =====================================================
+   CREATE USER
+===================================================== */
+
+function createUser(profile) {
+
+  if (!profile) {
+
+    throw new Error(
+      'User information is required.'
+    );
+  }
+
+
+  const users =
+    readUsers();
+
+
+  const email =
+    String(
+      profile.email || ''
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if (!email) {
+
+    throw new Error(
+      'Email address is required.'
+    );
+  }
+
+
+  const existing =
+    users.find(
+      (user) =>
+        String(
+          user.email || ''
+        )
+          .trim()
+          .toLowerCase() === email
+    );
+
+
+  if (existing) {
+
+    throw new Error(
+      'An account with this email already exists.'
+    );
+  }
+
+
+  const user = {
 
     id:
-      user.id,
+      crypto.randomUUID(),
 
-    email:
-      user.email,
+    ...profile,
 
-    fullName:
-      user.fullName || "",
+    email,
 
-    phone:
-      user.phone || "",
+    createdAt:
+      new Date().toISOString(),
 
-    guardianName:
-      user.guardianName || "",
-
-    guardianPhone:
-      user.guardianPhone || "",
-
-    trustedName:
-      user.trustedName || "",
-
-    trustedPhone:
-      user.trustedPhone || "",
-
-    trustedAddress:
-      user.trustedAddress || ""
+    passwordChangedAt:
+      new Date().toISOString()
 
   };
 
 
-  localStorage.setItem(
-    SESSION_KEY,
-    JSON.stringify(sessionUser)
+  users.push(user);
+
+  writeUsers(users);
+
+
+  return user;
+}
+
+
+/* =====================================================
+   AUTHENTICATE USER
+===================================================== */
+
+function authenticateUser(
+  email,
+  password
+) {
+
+  const users =
+    readUsers();
+
+
+  const normalizedEmail =
+    String(
+      email || ''
+    )
+      .trim()
+      .toLowerCase();
+
+
+  return (
+    users.find(
+      (user) =>
+        String(
+          user.email || ''
+        )
+          .trim()
+          .toLowerCase() ===
+          normalizedEmail &&
+
+        String(
+          user.password || ''
+        ) ===
+          String(password || '')
+    ) || null
   );
 }
 
 
 /* =====================================================
-   SHOW LOGIN MESSAGE
+   FIND USER BY EMAIL
 ===================================================== */
 
-function showMessage(
-  message,
-  type = "error"
-) {
+function findUserByEmail(email) {
 
-  if (!loginMessage) {
-    return;
-  }
+  const users =
+    readUsers();
 
 
-  loginMessage.textContent =
-    message;
+  const normalizedEmail =
+    String(
+      email || ''
+    )
+      .trim()
+      .toLowerCase();
 
 
-  if (type === "success") {
-
-    loginMessage.style.color =
-      "#4ade80";
-
-  } else {
-
-    loginMessage.style.color =
-      "#ff6b6b";
-  }
+  return (
+    users.find(
+      (user) =>
+        String(
+          user.email || ''
+        )
+          .trim()
+          .toLowerCase() ===
+          normalizedEmail
+    ) || null
+  );
 }
 
 
 /* =====================================================
-   SHOW RESET MESSAGE
+   CHANGE PASSWORD
 ===================================================== */
 
-function showForgotMessage(
-  message,
-  type = "error"
+function changePassword(
+  userId,
+  currentPassword,
+  newPassword
 ) {
 
-  if (!forgotPasswordMessage) {
-    return;
+  if (!userId) {
+
+    return {
+      success: false,
+      message:
+        'User account could not be identified.'
+    };
   }
 
 
-  forgotPasswordMessage.textContent =
-    message;
+  if (!currentPassword) {
 
-
-  if (type === "success") {
-
-    forgotPasswordMessage.style.color =
-      "#4ade80";
-
-  } else {
-
-    forgotPasswordMessage.style.color =
-      "#ff6b6b";
-  }
-}
-
-
-/* =====================================================
-   OPEN FORGOT PASSWORD
-===================================================== */
-
-function openForgotPassword(
-  event
-) {
-
-  if (event) {
-    event.preventDefault();
+    return {
+      success: false,
+      message:
+        'Please enter your current password.'
+    };
   }
 
 
-  if (!forgotPasswordPanel) {
-    return;
+  if (!newPassword) {
+
+    return {
+      success: false,
+      message:
+        'Please enter a new password.'
+    };
   }
 
 
-  forgotPasswordPanel.classList.remove(
-    "hidden"
-  );
+  if (newPassword.length < 6) {
 
+    return {
+      success: false,
+      message:
+        'New password must contain at least 6 characters.'
+    };
+  }
 
-  showForgotMessage(
-    ""
-  );
-
-
-  const resetEmail =
-    document.getElementById(
-      "resetEmail"
-    );
-
-
-  const loginEmail =
-    document.getElementById(
-      "email"
-    );
-
-
-  /*
-   * If the user already entered their email
-   * on the login form, automatically copy it
-   * into the reset form.
-   */
 
   if (
-    resetEmail &&
-    loginEmail &&
-    loginEmail.value.trim()
+    currentPassword ===
+    newPassword
   ) {
 
-    resetEmail.value =
-      loginEmail.value.trim()
-        .toLowerCase();
+    return {
+      success: false,
+      message:
+        'Your new password must be different from your current password.'
+    };
   }
 
 
-  resetEmail?.focus();
-}
+  const users =
+    readUsers();
 
 
-/* =====================================================
-   CLOSE FORGOT PASSWORD
-===================================================== */
+  const index =
+    users.findIndex(
+      (user) =>
+        user.id === userId
+    );
 
-function closeForgotPassword() {
 
-  if (!forgotPasswordPanel) {
-    return;
+  if (index === -1) {
+
+    return {
+      success: false,
+      message:
+        'User account was not found.'
+    };
   }
 
 
-  forgotPasswordPanel.classList.add(
-    "hidden"
-  );
+  const user =
+    users[index];
 
 
-  if (forgotPasswordForm) {
-    forgotPasswordForm.reset();
+  if (
+    String(user.password || '') !==
+    String(currentPassword)
+  ) {
+
+    return {
+      success: false,
+      message:
+        'Current password is incorrect.'
+    };
   }
 
 
-  showForgotMessage(
-    ""
-  );
-}
+  users[index] = {
 
+    ...user,
 
-/* =====================================================
-   NORMAL LOGIN
-===================================================== */
+    password:
+      newPassword,
 
-if (loginForm) {
+    passwordChangedAt:
+      new Date().toISOString()
 
-  loginForm.addEventListener(
-    "submit",
-    function (event) {
+  };
 
-      event.preventDefault();
 
+  writeUsers(users);
 
-      const emailInput =
-        document.getElementById(
-          "email"
-        );
 
+  return {
 
-      const passwordInput =
-        document.getElementById(
-          "password"
-        );
+    success: true,
 
+    message:
+      'Password changed successfully.',
 
-      if (!emailInput || !passwordInput) {
-        return;
-      }
+    user:
+      users[index]
 
-
-      const email =
-        emailInput.value
-          .trim()
-          .toLowerCase();
-
-
-      const password =
-        passwordInput.value;
-
-
-      /* ---------------------------------------------
-         BASIC VALIDATION
-      --------------------------------------------- */
-
-      if (!email) {
-
-        showMessage(
-          "Please enter your email."
-        );
-
-        emailInput.focus();
-
-        return;
-      }
-
-
-      if (!password) {
-
-        showMessage(
-          "Please enter your password."
-        );
-
-        passwordInput.focus();
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         AUTHENTICATE USER
-      --------------------------------------------- */
-
-      let user = null;
-
-
-      try {
-
-        user =
-          authenticateUser(
-            email,
-            password
-          );
-
-      } catch (error) {
-
-        console.error(
-          "Login error:",
-          error
-        );
-
-
-        showMessage(
-          "Unable to log in right now. Please try again."
-        );
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         INVALID LOGIN
-      --------------------------------------------- */
-
-      if (!user) {
-
-        showMessage(
-          "Invalid email or password."
-        );
-
-
-        passwordInput.value =
-          "";
-
-
-        passwordInput.focus();
-
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         SUCCESSFUL LOGIN
-      --------------------------------------------- */
-
-      saveSession(user);
-
-
-      showMessage(
-        "Login successful. Opening RakshaSutra...",
-        "success"
-      );
-
-
-      /*
-       * Give the success message a short moment
-       * before opening the user dashboard.
-       */
-
-      setTimeout(
-        function () {
-
-          window.location.href =
-            "user.html";
-
-        },
-        500
-      );
-
-    }
-  );
-}
-
-
-/* =====================================================
-   FORGOT PASSWORD LINK
-===================================================== */
-
-if (forgotPasswordLink) {
-
-  forgotPasswordLink.addEventListener(
-    "click",
-    openForgotPassword
-  );
-}
-
-
-/* =====================================================
-   CANCEL FORGOT PASSWORD
-===================================================== */
-
-if (cancelForgotPassword) {
-
-  cancelForgotPassword.addEventListener(
-    "click",
-    closeForgotPassword
-  );
+  };
 }
 
 
 /* =====================================================
    RESET PASSWORD
+   -----------------------------------------------------
+   Zero-cost/local version.
+
+   This does NOT send an email because the current app
+   has no backend/email service.
+
+   The function is intentionally separate from
+   changePassword() so a real email verification flow
+   can be added later without changing the rest of
+   the authentication system.
 ===================================================== */
 
-if (forgotPasswordForm) {
+function resetPassword(
+  email,
+  newPassword,
+  verificationValue
+) {
 
-  forgotPasswordForm.addEventListener(
-    "submit",
-    function (event) {
-
-      event.preventDefault();
-
-
-      const emailInput =
-        document.getElementById(
-          "resetEmail"
-        );
-
-
-      const verificationInput =
-        document.getElementById(
-          "resetVerification"
-        );
+  const normalizedEmail =
+    String(
+      email || ''
+    )
+      .trim()
+      .toLowerCase();
 
 
-      const newPasswordInput =
-        document.getElementById(
-          "resetPassword"
-        );
+  if (!normalizedEmail) {
+
+    return {
+      success: false,
+      message:
+        'Please enter your registered email.'
+    };
+  }
 
 
-      const confirmPasswordInput =
-        document.getElementById(
-          "resetPasswordConfirm"
-        );
+  if (!newPassword) {
+
+    return {
+      success: false,
+      message:
+        'Please enter a new password.'
+    };
+  }
 
 
-      if (
-        !emailInput ||
-        !verificationInput ||
-        !newPasswordInput ||
-        !confirmPasswordInput
-      ) {
+  if (newPassword.length < 6) {
 
-        showForgotMessage(
-          "Password reset form is incomplete."
-        );
-
-        return;
-      }
+    return {
+      success: false,
+      message:
+        'New password must contain at least 6 characters.'
+    };
+  }
 
 
-      const email =
-        emailInput.value
+  const users =
+    readUsers();
+
+
+  const index =
+    users.findIndex(
+      (user) =>
+        String(
+          user.email || ''
+        )
           .trim()
-          .toLowerCase();
+          .toLowerCase() ===
+          normalizedEmail
+    );
 
 
-      const verificationValue =
-        verificationInput.value
-          .trim();
+  if (index === -1) {
+
+    return {
+      success: false,
+      message:
+        'No account was found with this email.'
+    };
+  }
 
 
-      const newPassword =
-        newPasswordInput.value;
+  const user =
+    users[index];
 
 
-      const confirmPassword =
-        confirmPasswordInput.value;
+  /*
+   * For the current zero-cost/local version,
+   * verificationValue can be the user's mobile
+   * number OR their trusted contact number.
+   *
+   * This is NOT equivalent to secure email
+   * verification and should not be used as a
+   * production authentication system.
+   */
 
-
-      /* ---------------------------------------------
-         EMAIL VALIDATION
-      --------------------------------------------- */
-
-      if (!email) {
-
-        showForgotMessage(
-          "Please enter your registered email."
-        );
-
-        emailInput.focus();
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         MOBILE VALIDATION
-      --------------------------------------------- */
-
-      if (!verificationValue) {
-
-        showForgotMessage(
-          "Please enter your registered mobile number."
-        );
-
-        verificationInput.focus();
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         PASSWORD VALIDATION
-      --------------------------------------------- */
-
-      if (!newPassword) {
-
-        showForgotMessage(
-          "Please create a new password."
-        );
-
-        newPasswordInput.focus();
-
-        return;
-      }
-
-
-      if (newPassword.length < 6) {
-
-        showForgotMessage(
-          "New password must contain at least 6 characters."
-        );
-
-        newPasswordInput.focus();
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         CONFIRM PASSWORD
-      --------------------------------------------- */
-
-      if (!confirmPassword) {
-
-        showForgotMessage(
-          "Please confirm your new password."
-        );
-
-        confirmPasswordInput.focus();
-
-        return;
-      }
-
-
-      if (
-        newPassword !==
-        confirmPassword
-      ) {
-
-        showForgotMessage(
-          "New passwords do not match."
-        );
-
-        confirmPasswordInput.focus();
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         RESET PASSWORD
-      --------------------------------------------- */
-
-      let result;
-
-
-      try {
-
-        result =
-          resetPassword(
-            email,
-            newPassword,
-            verificationValue
-          );
-
-      } catch (error) {
-
-        console.error(
-          "Password reset error:",
-          error
-        );
-
-
-        showForgotMessage(
-          "Unable to reset the password. Please try again."
-        );
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         RESET FAILED
-      --------------------------------------------- */
-
-      if (
-        !result ||
-        !result.success
-      ) {
-
-        showForgotMessage(
-          result?.message ||
-          "Password could not be reset."
-        );
-
-        return;
-      }
-
-
-      /* ---------------------------------------------
-         RESET SUCCESSFUL
-      --------------------------------------------- */
-
-      showForgotMessage(
-        "✅ Password reset successfully. You can now log in with your new password.",
-        "success"
+  const verification =
+    String(
+      verificationValue || ''
+    )
+      .replace(
+        /[^0-9+]/g,
+        ''
       );
 
 
-      /*
-       * Clear password fields.
-       */
-
-      newPasswordInput.value =
-        "";
-
-      confirmPasswordInput.value =
-        "";
-
-
-      /*
-       * Put the reset email into the normal
-       * login email field.
-       */
-
-      const loginEmail =
-        document.getElementById(
-          "email"
-        );
-
-
-      if (loginEmail) {
-
-        loginEmail.value =
-          email;
-      }
-
-
-      /*
-       * Close the reset panel after a
-       * short delay.
-       */
-
-      setTimeout(
-        function () {
-
-          closeForgotPassword();
-
-
-          const loginPassword =
-            document.getElementById(
-              "password"
-            );
-
-
-          if (loginPassword) {
-            loginPassword.focus();
-          }
-
-
-          showMessage(
-            "Password reset successfully. Please log in with your new password.",
-            "success"
-          );
-
-        },
-        1200
+  const phone =
+    String(
+      user.phone || ''
+    )
+      .replace(
+        /[^0-9+]/g,
+        ''
       );
 
-    }
+
+  const guardianPhone =
+    String(
+      user.guardianPhone || ''
+    )
+      .replace(
+        /[^0-9+]/g,
+        ''
+      );
+
+
+  const trustedPhone =
+    String(
+      user.trustedPhone || ''
+    )
+      .replace(
+        /[^0-9+]/g,
+        ''
+      );
+
+
+  const verificationMatched =
+    verification === phone ||
+    verification === guardianPhone ||
+    verification === trustedPhone;
+
+
+  if (!verificationMatched) {
+
+    return {
+      success: false,
+      message:
+        'Verification information does not match this account.'
+    };
+  }
+
+
+  users[index] = {
+
+    ...user,
+
+    password:
+      newPassword,
+
+    passwordChangedAt:
+      new Date().toISOString()
+
+  };
+
+
+  writeUsers(users);
+
+
+  return {
+
+    success: true,
+
+    message:
+      'Password reset successfully.',
+
+    user:
+      users[index]
+
+  };
+}
+
+
+/* =====================================================
+   UPDATE USER
+===================================================== */
+
+function updateUser(
+  userId,
+  updates
+) {
+
+  if (!userId || !updates) {
+
+    return {
+      success: false,
+      message:
+        'Invalid account information.'
+    };
+  }
+
+
+  const users =
+    readUsers();
+
+
+  const index =
+    users.findIndex(
+      (user) =>
+        user.id === userId
+    );
+
+
+  if (index === -1) {
+
+    return {
+      success: false,
+      message:
+        'User account was not found.'
+    };
+  }
+
+
+  const existingUser =
+    users[index];
+
+
+  /*
+   * Prevent accidental password replacement
+   * through updateUser().
+   *
+   * Password changes should always go through
+   * changePassword() or resetPassword().
+   */
+
+  const safeUpdates = {
+    ...updates
+  };
+
+
+  delete safeUpdates.password;
+
+
+  users[index] = {
+
+    ...existingUser,
+
+    ...safeUpdates
+
+  };
+
+
+  writeUsers(users);
+
+
+  return {
+
+    success: true,
+
+    message:
+      'Account updated successfully.',
+
+    user:
+      users[index]
+
+  };
+}
+
+
+/* =====================================================
+   RESET ALL STORAGE
+===================================================== */
+
+function resetStorage() {
+
+  const storage =
+    getStorage();
+
+
+  storage.removeItem(
+    STORAGE_KEY
   );
 }
+
+
+/* =====================================================
+   GLOBAL ACCESS
+===================================================== */
+
+if (
+  typeof window !== 'undefined'
+) {
+
+  window.RakshaSutraAuth = {
+
+    createUser,
+
+    authenticateUser,
+
+    findUserByEmail,
+
+    changePassword,
+
+    resetPassword,
+
+    updateUser,
+
+    resetStorage
+
+  };
+}
+
+
+/* =====================================================
+   EXPORTS
+===================================================== */
+
+export {
+
+  createUser,
+
+  authenticateUser,
+
+  findUserByEmail,
+
+  changePassword,
+
+  resetPassword,
+
+  updateUser,
+
+  resetStorage
+
+};
 ```
