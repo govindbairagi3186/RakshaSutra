@@ -1,10 +1,8 @@
+```javascript
 import {
   addIncident,
-  readUsers,
-  resolveActiveSOS,
-  updateIncident
+  readUsers
 } from './dataStore.js';
-
 
 const $ = (id) => document.getElementById(id);
 
@@ -56,18 +54,11 @@ const els = {
   endCallBtn: $('endCallBtn')
 };
 
-
-/* =====================================================
-   STATE
-===================================================== */
-
 let currentUser = null;
 let lastPosition = null;
 
 let sosActive = false;
 let locationWatchId = null;
-
-let activeSosIncidentId = null;
 
 let sosStartedAt = null;
 let sosTimerInterval = null;
@@ -87,28 +78,18 @@ function showToast(message) {
     return;
   }
 
-  els.toast.textContent =
-    message;
+  els.toast.textContent = message;
 
-  els.toast.classList.remove(
-    'hidden'
-  );
+  els.toast.classList.remove('hidden');
 
-  window.clearTimeout(
-    showToast.timer
-  );
+  window.clearTimeout(showToast.timer);
 
   showToast.timer =
-    window.setTimeout(
-      () => {
+    window.setTimeout(() => {
 
-        els.toast.classList.add(
-          'hidden'
-        );
+      els.toast.classList.add('hidden');
 
-      },
-      3200
-    );
+    }, 3200);
 }
 
 
@@ -125,12 +106,9 @@ function addActivity(message) {
   const item =
     document.createElement('li');
 
-  item.textContent =
-    message;
+  item.textContent = message;
 
-  els.activityList.prepend(
-    item
-  );
+  els.activityList.prepend(item);
 }
 
 
@@ -144,17 +122,13 @@ function saveSession(user) {
     SESSION_KEY,
     JSON.stringify({
 
-      id:
-        user.id,
+      id: user.id,
 
-      email:
-        user.email,
+      email: user.email,
 
-      fullName:
-        user.fullName,
+      fullName: user.fullName,
 
-      phone:
-        user.phone,
+      phone: user.phone,
 
       guardianName:
         user.guardianName,
@@ -265,12 +239,8 @@ function contact(kind) {
 
 function cleanPhone(phone) {
 
-  return String(
-    phone || ''
-  ).replace(
-    /[^0-9+]/g,
-    ''
-  );
+  return String(phone || '')
+    .replace(/[^0-9+]/g, '');
 }
 
 
@@ -302,12 +272,12 @@ function getPosition() {
 
         {
           enableHighAccuracy: true,
+
           timeout: 15000,
+
           maximumAge: 0
         }
-
       );
-
     }
   );
 }
@@ -315,21 +285,18 @@ function getPosition() {
 
 function setPosition(position) {
 
-  if (!position?.coords) {
-    return;
-  }
-
-
   lastPosition = {
 
     latitude:
       Number(
-        position.coords.latitude.toFixed(6)
+        position.coords.latitude
+          .toFixed(6)
       ),
 
     longitude:
       Number(
-        position.coords.longitude.toFixed(6)
+        position.coords.longitude
+          .toFixed(6)
       ),
 
     accuracy:
@@ -339,7 +306,6 @@ function setPosition(position) {
 
     timestamp:
       new Date().toISOString()
-
   };
 
 
@@ -390,7 +356,10 @@ function buildMessage() {
       ? `Current location: ${mapsLink()}`
       : 'Location: GPS unavailable.',
 
-    `GPS accuracy: ${lastPosition?.accuracy ?? 'unknown'}m`,
+    `GPS accuracy: ${
+      lastPosition?.accuracy ??
+      'unknown'
+    }m`,
 
     'RakshaSutra SOS is active.',
 
@@ -436,26 +405,23 @@ function smsTo(
   const c =
     contact(kind);
 
-
   if (!c?.phone) {
 
     showToast(
+
       `${
         kind === 'guardian'
           ? 'Guardian'
           : 'Trusted contact'
       } phone number is not saved.`
+
     );
 
     return;
   }
 
-
   const body =
-    encodeURIComponent(
-      message
-    );
-
+    encodeURIComponent(message);
 
   window.location.href =
     `sms:${cleanPhone(c.phone)}?body=${body}`;
@@ -472,21 +438,19 @@ function openEmergencyModal() {
     return;
   }
 
+  els.emergencySummary.textContent =
 
-  if (els.emergencySummary) {
+    lastPosition
 
-    els.emergencySummary.textContent =
-      lastPosition
+      ? `SOS ACTIVE • GPS: ${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`
 
-        ? `SOS ACTIVE • GPS: ${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`
-
-        : 'SOS ACTIVE • Waiting for GPS location.';
-  }
+      : 'SOS ACTIVE • Waiting for GPS location.';
 
 
   els.emergencyModal.classList.remove(
     'hidden'
   );
+
 
   els.emergencyModal.setAttribute(
     'aria-hidden',
@@ -500,7 +464,6 @@ function closeEmergencyModal() {
   if (!els.emergencyModal) {
     return;
   }
-
 
   els.emergencyModal.classList.add(
     'hidden'
@@ -523,20 +486,15 @@ function startLiveLocation() {
     !navigator.geolocation ||
     locationWatchId !== null
   ) {
-
     return;
   }
-
 
   locationWatchId =
     navigator.geolocation.watchPosition(
 
       (position) => {
 
-        setPosition(
-          position
-        );
-
+        setPosition(position);
 
         if (sosActive) {
 
@@ -545,42 +503,7 @@ function startLiveLocation() {
             els.sosState.textContent =
               '🔴 SOS ACTIVE • LIVE GPS';
           }
-
-
-          /*
-           * Update the SAME SOS incident
-           * with the newest GPS coordinates.
-           */
-
-          if (activeSosIncidentId) {
-
-            updateIncident(
-
-              activeSosIncidentId,
-
-              {
-
-                latitude:
-                  lastPosition?.latitude ??
-                  null,
-
-                longitude:
-                  lastPosition?.longitude ??
-                  null,
-
-                accuracy:
-                  lastPosition?.accuracy ??
-                  null,
-
-                lastLocationUpdate:
-                  new Date().toISOString()
-
-              }
-
-            );
-          }
         }
-
       },
 
       (error) => {
@@ -589,7 +512,6 @@ function startLiveLocation() {
           'Live GPS error:',
           error
         );
-
       },
 
       {
@@ -601,16 +523,13 @@ function startLiveLocation() {
         timeout: 15000
 
       }
-
     );
 }
 
 
 function stopLiveLocation() {
 
-  if (
-    locationWatchId !== null
-  ) {
+  if (locationWatchId !== null) {
 
     navigator.geolocation.clearWatch(
       locationWatchId
@@ -622,12 +541,10 @@ function stopLiveLocation() {
 
 
 /* =====================================================
-   5-MINUTE TIMER
+   SOS TIMER
 ===================================================== */
 
-function formatTime(
-  milliseconds
-) {
+function formatTime(milliseconds) {
 
   const totalSeconds =
     Math.max(
@@ -637,23 +554,17 @@ function formatTime(
       )
     );
 
-
   const minutes =
     Math.floor(
       totalSeconds / 60
     );
 
-
   const seconds =
     totalSeconds % 60;
 
-
   return (
-
     `${String(minutes).padStart(2, '0')}:` +
-
     `${String(seconds).padStart(2, '0')}`
-
   );
 }
 
@@ -664,19 +575,35 @@ function updateSosTimer() {
     !sosActive ||
     !sosStartedAt
   ) {
-
     return;
   }
-
 
   const elapsed =
     Date.now() -
     sosStartedAt;
 
-
   const remaining =
     SOS_DURATION -
     elapsed;
+
+
+  /*
+   * IMPORTANT:
+   *
+   * The Safe button is intentionally
+   * enabled immediately.
+   *
+   * The timer is only informational.
+   */
+
+  if (els.safeBtn) {
+
+    els.safeBtn.disabled =
+      false;
+
+    els.safeBtn.textContent =
+      '🟢 ARE YOU SAFE NOW?';
+  }
 
 
   if (remaining > 0) {
@@ -684,28 +611,21 @@ function updateSosTimer() {
     if (els.sosTimer) {
 
       els.sosTimer.textContent =
-        `Safety confirmation available in ${formatTime(remaining)}`;
+        `SOS active • ${formatTime(remaining)} remaining`;
     }
-
-
-    if (els.safeBtn) {
-
-      els.safeBtn.disabled =
-        true;
-
-      els.safeBtn.textContent =
-        `🟢 ARE YOU SAFE NOW? (${formatTime(remaining)})`;
-    }
-
 
     return;
   }
 
 
+  /*
+   * FIVE MINUTES COMPLETED
+   */
+
   if (els.sosTimer) {
 
     els.sosTimer.textContent =
-      '⚠️ 5 minutes completed — please confirm your safety.';
+      '⚠️ 5 minutes completed — confirm your safety when ready.';
   }
 
 
@@ -725,14 +645,11 @@ function startSosTimer() {
   sosStartedAt =
     Date.now();
 
-
   window.clearInterval(
     sosTimerInterval
   );
 
-
   updateSosTimer();
-
 
   sosTimerInterval =
     window.setInterval(
@@ -748,11 +665,9 @@ function stopSosTimer() {
     sosTimerInterval
   );
 
-  sosTimerInterval =
-    null;
+  sosTimerInterval = null;
 
-  sosStartedAt =
-    null;
+  sosStartedAt = null;
 }
 
 
@@ -766,26 +681,21 @@ async function triggerSOS() {
     return;
   }
 
-
   if (sosActive) {
     return;
   }
 
+  els.sosBtn.disabled =
+    true;
 
-  if (els.sosBtn) {
-
-    els.sosBtn.disabled =
-      true;
-
-    els.sosBtn.textContent =
-      '⏳ Activating SOS…';
-  }
+  els.sosBtn.textContent =
+    '⏳ Activating SOS…';
 
 
   try {
 
     /* ---------------------------------------------
-       FIRST GPS FIX
+       GET FIRST GPS FIX
     --------------------------------------------- */
 
     try {
@@ -793,9 +703,7 @@ async function triggerSOS() {
       const position =
         await getPosition();
 
-      setPosition(
-        position
-      );
+      setPosition(position);
 
     } catch (error) {
 
@@ -813,8 +721,7 @@ async function triggerSOS() {
        ACTIVATE SOS
     --------------------------------------------- */
 
-    sosActive =
-      true;
+    sosActive = true;
 
 
     /* ---------------------------------------------
@@ -825,7 +732,7 @@ async function triggerSOS() {
 
 
     /* ---------------------------------------------
-       START 5-MINUTE TIMER
+       START TIMER
     --------------------------------------------- */
 
     startSosTimer();
@@ -835,18 +742,12 @@ async function triggerSOS() {
        UPDATE UI
     --------------------------------------------- */
 
-    if (els.sosBtn) {
-
-      els.sosBtn.textContent =
-        '🛑 SOS ACTIVE';
-    }
+    els.sosBtn.textContent =
+      '🛑 SOS ACTIVE';
 
 
-    if (els.statusNote) {
-
-      els.statusNote.textContent =
-        '🚨 SOS ACTIVE. Live GPS tracking is running.';
-    }
+    els.statusNote.textContent =
+      '🚨 SOS ACTIVE. Live GPS tracking is running.';
 
 
     if (els.sosState) {
@@ -856,55 +757,48 @@ async function triggerSOS() {
     }
 
 
-    /* ---------------------------------------------
-       CREATE ACTIVE SOS INCIDENT
-    --------------------------------------------- */
-
-    const sosIncident =
-      addIncident({
-
-        type:
-          'sos',
-
-        message:
-          'SOS activated. Live GPS session started.',
-
-        userId:
-          currentUser.id,
-
-        userEmail:
-          currentUser.email,
-
-        userName:
-          currentUser.fullName,
-
-        latitude:
-          lastPosition?.latitude ??
-          null,
-
-        longitude:
-          lastPosition?.longitude ??
-          null,
-
-        accuracy:
-          lastPosition?.accuracy ??
-          null,
-
-        status:
-          'active',
-
-        startedAt:
-          new Date().toISOString()
-
-      });
-
-
     /*
-     * Remember the incident ID.
+     * SAFE BUTTON:
+     *
+     * It is available immediately.
      */
 
-    activeSosIncidentId =
-      sosIncident.id;
+    if (els.safeBtn) {
+
+      els.safeBtn.disabled =
+        false;
+
+      els.safeBtn.textContent =
+        '🟢 ARE YOU SAFE NOW?';
+    }
+
+
+    /* ---------------------------------------------
+       RECORD INCIDENT
+    --------------------------------------------- */
+
+    addIncident({
+
+      type:
+        'sos',
+
+      message:
+        'SOS activated. Live GPS session started.',
+
+      latitude:
+        lastPosition?.latitude ??
+        null,
+
+      longitude:
+        lastPosition?.longitude ??
+        null,
+
+      status:
+        'active',
+
+      startedAt:
+        new Date().toISOString()
+    });
 
 
     addActivity(
@@ -927,31 +821,10 @@ async function triggerSOS() {
 
     openEmergencyModal();
 
-
-  } catch (error) {
-
-    console.error(
-      'SOS activation error:',
-      error
-    );
-
-    sosActive =
-      false;
-
-    stopLiveLocation();
-    stopSosTimer();
-
-    showToast(
-      'Unable to activate SOS.'
-    );
-
   } finally {
 
-    if (els.sosBtn) {
-
-      els.sosBtn.disabled =
-        false;
-    }
+    els.sosBtn.disabled =
+      false;
   }
 }
 
@@ -972,93 +845,50 @@ function confirmSafe() {
   }
 
 
-  const elapsed =
-    Date.now() -
-    sosStartedAt;
-
-
-  /* ---------------------------------------------
-     REQUIRE FIVE MINUTES
-  --------------------------------------------- */
-
-  if (
-    elapsed < SOS_DURATION
-  ) {
-
-    const remaining =
-      SOS_DURATION -
-      elapsed;
-
-
-    showToast(
-      `Please wait ${formatTime(remaining)} before confirming safety.`
-    );
-
-    return;
-  }
-
-
-  /* ---------------------------------------------
-     RESOLVE THE SAME SOS INCIDENT
-  --------------------------------------------- */
-
-  const resolvedIncident =
-    resolveActiveSOS(
-      currentUser.id,
-      lastPosition
-    );
-
-
   /*
-   * Stop live GPS.
+   * IMPORTANT:
+   *
+   * There is NO 5-minute restriction here.
+   *
+   * The user can confirm safety at any time.
    */
+
+
+  /* ---------------------------------------------
+     STOP LIVE GPS
+  --------------------------------------------- */
 
   stopLiveLocation();
 
 
-  /*
-   * Stop timer.
-   */
+  /* ---------------------------------------------
+     STOP TIMER
+  --------------------------------------------- */
 
   stopSosTimer();
 
 
-  /*
-   * Change local SOS state.
-   */
+  /* ---------------------------------------------
+     CHANGE SOS STATE
+  --------------------------------------------- */
 
-  sosActive =
-    false;
-
-
-  /*
-   * Clear active incident ID.
-   */
-
-  activeSosIncidentId =
-    null;
+  sosActive = false;
 
 
   /* ---------------------------------------------
-     UPDATE BUTTON
+     UPDATE SOS BUTTON
   --------------------------------------------- */
 
-  if (els.sosBtn) {
-
-    els.sosBtn.textContent =
-      '🚨 One-Tap SOS';
-  }
+  els.sosBtn.textContent =
+    '🚨 One-Tap SOS';
 
 
   /* ---------------------------------------------
      UPDATE STATUS
   --------------------------------------------- */
 
-  if (els.statusNote) {
-
-    els.statusNote.textContent =
-      '🟢 You are safe. SOS resolved and live location sharing stopped.';
-  }
+  els.statusNote.textContent =
+    '🟢 You are safe. SOS resolved and live location sharing stopped.';
 
 
   if (els.sosState) {
@@ -1086,25 +916,40 @@ function confirmSafe() {
 
 
   /* ---------------------------------------------
-     ACTIVITY
+     RECORD RESOLUTION
   --------------------------------------------- */
 
-  if (resolvedIncident) {
+  addIncident({
 
-    addActivity(
-      '🟢 Active SOS marked as resolved.'
-    );
+    type:
+      'sos-resolved',
 
-  } else {
+    message:
+      'User confirmed they are safe. Live GPS stopped.',
 
-    addActivity(
-      '🟡 Safety confirmed, but no active SOS record was found.'
-    );
-  }
+    latitude:
+      lastPosition?.latitude ??
+      null,
+
+    longitude:
+      lastPosition?.longitude ??
+      null,
+
+    status:
+      'resolved',
+
+    resolvedAt:
+      new Date().toISOString()
+  });
+
+
+  addActivity(
+    '🟢 Safety confirmed. Live GPS stopped.'
+  );
 
 
   /* ---------------------------------------------
-     NOTIFY TRUSTED CONTACTS
+     PREPARE SAFE NOTIFICATION
   --------------------------------------------- */
 
   showToast(
@@ -1113,10 +958,11 @@ function confirmSafe() {
 
 
   /*
-   * Browser security does not allow a website
-   * to silently send an SMS.
+   * Browser security prevents the website
+   * from silently sending an SMS.
    *
-   * This opens the phone's SMS composer.
+   * The phone's SMS composer is opened with
+   * the safety message already prepared.
    */
 
   smsTo(
@@ -1136,75 +982,19 @@ function stopSOS() {
     return;
   }
 
-
-  /*
-   * Stop GPS.
-   */
-
   stopLiveLocation();
-
-
-  /*
-   * Stop timer.
-   */
 
   stopSosTimer();
 
-
-  /*
-   * If manually stopped before the
-   * safety confirmation, mark the
-   * active incident as stopped.
-   */
-
-  if (activeSosIncidentId) {
-
-    updateIncident(
-
-      activeSosIncidentId,
-
-      {
-
-        status:
-          'stopped',
-
-        stoppedAt:
-          new Date().toISOString(),
-
-        finalLatitude:
-          lastPosition?.latitude ??
-          null,
-
-        finalLongitude:
-          lastPosition?.longitude ??
-          null
-
-      }
-
-    );
-  }
+  sosActive = false;
 
 
-  sosActive =
-    false;
+  els.sosBtn.textContent =
+    '🚨 One-Tap SOS';
 
 
-  activeSosIncidentId =
-    null;
-
-
-  if (els.sosBtn) {
-
-    els.sosBtn.textContent =
-      '🚨 One-Tap SOS';
-  }
-
-
-  if (els.statusNote) {
-
-    els.statusNote.textContent =
-      'SOS stopped on this device.';
-  }
+  els.statusNote.textContent =
+    'SOS stopped on this device.';
 
 
   if (els.sosState) {
@@ -1231,6 +1021,22 @@ function stopSOS() {
   }
 
 
+  addIncident({
+
+    type:
+      'sos-stop',
+
+    message:
+      'SOS manually stopped on the device.',
+
+    status:
+      'stopped',
+
+    stoppedAt:
+      new Date().toISOString()
+  });
+
+
   addActivity(
     'SOS manually stopped.'
   );
@@ -1246,7 +1052,6 @@ function emergencyVoiceCall() {
   if (!requireLogin()) {
     return;
   }
-
 
   const c =
     contact('guardian');
@@ -1268,48 +1073,34 @@ function emergencyVoiceCall() {
 
 
 /* =====================================================
-   FAKE CALL — VIBRATION
+   FAKE CALL — RINGTONE + VIBRATION
 ===================================================== */
 
 function startFakeCallVibration() {
 
-  if (
-    typeof navigator.vibrate !==
-    'function'
-  ) {
-
+  if (!navigator.vibrate) {
     return;
   }
 
-
-  navigator.vibrate(
-    [
-      500,
-      250,
-      500,
-      250,
-      500,
-      1000
-    ]
-  );
+  navigator.vibrate([
+    500,
+    250,
+    500,
+    250,
+    500,
+    1000
+  ]);
 }
 
 
 function stopFakeCallVibration() {
 
-  if (
-    typeof navigator.vibrate ===
-    'function'
-  ) {
+  if (navigator.vibrate) {
 
     navigator.vibrate(0);
   }
 }
 
-
-/* =====================================================
-   FAKE CALL — RINGTONE
-===================================================== */
 
 function createRingtoneBeep() {
 
@@ -1321,11 +1112,9 @@ function createRingtoneBeep() {
         window.AudioContext ||
         window.webkitAudioContext;
 
-
       if (!AudioContext) {
         return;
       }
-
 
       audioContext =
         new AudioContext();
@@ -1339,15 +1128,12 @@ function createRingtoneBeep() {
 
       audioContext
         .resume()
-        .catch(
-          () => {}
-        );
+        .catch(() => {});
     }
 
 
     const oscillator =
       audioContext.createOscillator();
-
 
     const gain =
       audioContext.createGain();
@@ -1381,10 +1167,7 @@ function createRingtoneBeep() {
     );
 
 
-    oscillator.connect(
-      gain
-    );
-
+    oscillator.connect(gain);
 
     gain.connect(
       audioContext.destination
@@ -1395,8 +1178,7 @@ function createRingtoneBeep() {
 
 
     oscillator.stop(
-      audioContext.currentTime +
-      0.5
+      audioContext.currentTime + 0.5
     );
 
   } catch (error) {
@@ -1413,21 +1195,12 @@ function startFakeCallRingtone() {
 
   stopFakeCallRingtone();
 
-
   ringtoneStarted =
     true;
 
 
-  /*
-   * First ring.
-   */
-
   createRingtoneBeep();
 
-
-  /*
-   * Continue ringing.
-   */
 
   ringtoneTimer =
     window.setInterval(
@@ -1443,10 +1216,6 @@ function startFakeCallRingtone() {
       1500
     );
 
-
-  /*
-   * Start vibration.
-   */
 
   startFakeCallVibration();
 }
@@ -1510,7 +1279,9 @@ function openFakeCall() {
   }
 
 
-  if (els.incomingCallScreen) {
+  if (
+    els.incomingCallScreen
+  ) {
 
     els.incomingCallScreen.hidden =
       false;
@@ -1537,10 +1308,6 @@ function openFakeCall() {
   }
 
 
-  /*
-   * Start vibration + ringtone.
-   */
-
   startFakeCallRingtone();
 
 
@@ -1559,7 +1326,9 @@ function answerFakeCall() {
   stopFakeCallRingtone();
 
 
-  if (els.incomingCallScreen) {
+  if (
+    els.incomingCallScreen
+  ) {
 
     els.incomingCallScreen.hidden =
       true;
@@ -1608,7 +1377,9 @@ function closeFakeCall() {
   }
 
 
-  if (els.incomingCallScreen) {
+  if (
+    els.incomingCallScreen
+  ) {
 
     els.incomingCallScreen.hidden =
       false;
@@ -1641,61 +1412,40 @@ function closeFakeCall() {
 
 function renderUser() {
 
-  if (els.userBadge) {
-
-    els.userBadge.textContent =
-      `Welcome, ${
-        currentUser.fullName?.split(' ')[0] ||
-        'User'
-      }`;
-  }
+  els.userBadge.textContent =
+    `Welcome, ${
+      currentUser.fullName?.split(' ')[0] ||
+      'User'
+    }`;
 
 
-  if (els.guardianName) {
-
-    els.guardianName.textContent =
-      currentUser.guardianName ||
-      '—';
-  }
+  els.guardianName.textContent =
+    currentUser.guardianName ||
+    '—';
 
 
-  if (els.guardianPhone) {
-
-    els.guardianPhone.textContent =
-      currentUser.guardianPhone ||
-      '—';
-  }
+  els.guardianPhone.textContent =
+    currentUser.guardianPhone ||
+    '—';
 
 
-  if (els.trustedName) {
-
-    els.trustedName.textContent =
-      currentUser.trustedName ||
-      '—';
-  }
+  els.trustedName.textContent =
+    currentUser.trustedName ||
+    '—';
 
 
-  if (els.trustedPhone) {
-
-    els.trustedPhone.textContent =
-      currentUser.trustedPhone ||
-      '—';
-  }
+  els.trustedPhone.textContent =
+    currentUser.trustedPhone ||
+    '—';
 
 
-  if (els.trustedAddress) {
-
-    els.trustedAddress.textContent =
-      currentUser.trustedAddress ||
-      '—';
-  }
+  els.trustedAddress.textContent =
+    currentUser.trustedAddress ||
+    '—';
 
 
-  if (els.statusNote) {
-
-    els.statusNote.textContent =
-      'Account active. Your emergency controls are ready.';
-  }
+  els.statusNote.textContent =
+    'Account active. Your emergency controls are ready.';
 }
 
 
@@ -1703,7 +1453,7 @@ function renderUser() {
    EVENT LISTENERS
 ===================================================== */
 
-els.sosBtn?.addEventListener(
+els.sosBtn.addEventListener(
   'click',
   () => {
 
@@ -1715,7 +1465,6 @@ els.sosBtn?.addEventListener(
 
       triggerSOS();
     }
-
   }
 );
 
@@ -1726,23 +1475,19 @@ els.safeBtn?.addEventListener(
 );
 
 
-els.voiceBtn?.addEventListener(
+els.voiceBtn.addEventListener(
   'click',
   emergencyVoiceCall
 );
 
 
-els.callBtn?.addEventListener(
+els.callBtn.addEventListener(
   'click',
   openFakeCall
 );
 
 
-/* =====================================================
-   SHARE LOCATION
-===================================================== */
-
-els.shareBtn?.addEventListener(
+els.shareBtn.addEventListener(
   'click',
   async () => {
 
@@ -1766,24 +1511,14 @@ els.shareBtn?.addEventListener(
         message:
           'Location SMS prepared.',
 
-        userId:
-          currentUser.id,
-
-        userEmail:
-          currentUser.email,
-
         latitude:
           lastPosition.latitude,
 
         longitude:
           lastPosition.longitude,
 
-        accuracy:
-          lastPosition.accuracy,
-
         status:
           'prepared'
-
       });
 
 
@@ -1792,9 +1527,7 @@ els.shareBtn?.addEventListener(
       );
 
 
-      smsTo(
-        'guardian'
-      );
+      smsTo('guardian');
 
     } catch (error) {
 
@@ -1802,80 +1535,59 @@ els.shareBtn?.addEventListener(
         `GPS unavailable: ${error.message}`
       );
     }
-
   }
 );
 
 
-/* =====================================================
-   CONTACT SMS
-===================================================== */
-
-els.guardianSmsBtn?.addEventListener(
+els.guardianSmsBtn.addEventListener(
   'click',
-  () =>
-    smsTo('guardian')
+  () => smsTo('guardian')
 );
 
 
-els.trustedSmsBtn?.addEventListener(
+els.trustedSmsBtn.addEventListener(
   'click',
-  () =>
-    smsTo('trusted')
+  () => smsTo('trusted')
 );
 
 
-els.guardianEmergencySmsBtn?.addEventListener(
+els.guardianEmergencySmsBtn.addEventListener(
   'click',
-  () =>
-    smsTo('guardian')
+  () => smsTo('guardian')
 );
 
 
-els.trustedEmergencySmsBtn?.addEventListener(
+els.trustedEmergencySmsBtn.addEventListener(
   'click',
-  () =>
-    smsTo('trusted')
+  () => smsTo('trusted')
 );
 
 
-/* =====================================================
-   EMERGENCY MODAL
-===================================================== */
-
-els.closeEmergencyBtn?.addEventListener(
+els.closeEmergencyBtn.addEventListener(
   'click',
   closeEmergencyModal
 );
 
 
-/* =====================================================
-   FAKE CALL BUTTONS
-===================================================== */
-
-els.declineCallBtn?.addEventListener(
+els.declineCallBtn.addEventListener(
   'click',
   closeFakeCall
 );
 
 
-els.answerCallBtn?.addEventListener(
+els.answerCallBtn.addEventListener(
   'click',
   answerFakeCall
 );
 
 
-els.endCallBtn?.addEventListener(
+els.endCallBtn.addEventListener(
   'click',
   closeFakeCall
 );
 
 
-/* =====================================================
-   SAFETY SCAN
-===================================================== */
-
-els.scanBtn?.addEventListener(
+els.scanBtn.addEventListener(
   'click',
   () => {
 
@@ -1886,21 +1598,18 @@ els.scanBtn?.addEventListener(
 
     const score =
       Number(
-        els.riskScore?.textContent ||
+        els.riskScore.textContent ||
         24
       );
 
 
-    if (els.riskScore) {
-
-      els.riskScore.textContent =
-        String(
-          Math.min(
-            100,
-            score + 5
-          )
-        );
-    }
+    els.riskScore.textContent =
+      String(
+        Math.min(
+          100,
+          score + 5
+        )
+      );
 
 
     addIncident({
@@ -1909,17 +1618,7 @@ els.scanBtn?.addEventListener(
         'scan',
 
       message:
-        'Safety scan completed.',
-
-      userId:
-        currentUser.id,
-
-      userEmail:
-        currentUser.email,
-
-      status:
-        'completed'
-
+        'Safety scan completed.'
     });
 
 
@@ -1931,7 +1630,6 @@ els.scanBtn?.addEventListener(
     showToast(
       'Safety scan complete.'
     );
-
   }
 );
 
@@ -1940,47 +1638,22 @@ els.scanBtn?.addEventListener(
    LOGOUT
 ===================================================== */
 
-els.logoutBtn?.addEventListener(
+els.logoutBtn.addEventListener(
   'click',
   () => {
-
-    /*
-     * Stop everything running on
-     * the current page.
-     */
 
     stopLiveLocation();
 
     stopSosTimer();
 
     stopFakeCallRingtone();
-
 
     localStorage.removeItem(
       SESSION_KEY
     );
 
-
     window.location.href =
       'login.html';
-  }
-);
-
-
-/* =====================================================
-   CLEANUP
-===================================================== */
-
-window.addEventListener(
-  'beforeunload',
-  () => {
-
-    stopLiveLocation();
-
-    stopSosTimer();
-
-    stopFakeCallRingtone();
-
   }
 );
 
@@ -2003,3 +1676,4 @@ if (!currentUser) {
 
   renderUser();
 }
+```
