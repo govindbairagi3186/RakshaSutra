@@ -1,719 +1,232 @@
 import {
-  authenticateAdmin,
-  exportIncidents,
-  getAdminOverview,
-  importIncidents
-} from './admin.js';
-
-import {
+  addIncident,
   readIncidents,
   readUsers
-} from './dataStore.js';
+} from "./dataStore.js";
 
 
 /* =====================================================
-   ELEMENTS
-===================================================== */
+   ADMIN CONFIGURATION
+   ===================================================== */
 
-const adminLoginPanel =
-  document.getElementById('adminLoginPanel');
+const DEFAULT_ADMIN = {
+  username: "GOVIND",
+  password: "GOVIND#1"
+};
 
-const adminDashboard =
-  document.getElementById('adminDashboard');
-
-const adminLoginForm =
-  document.getElementById('adminLoginForm');
-
-const adminLoginMessage =
-  document.getElementById('adminLoginMessage');
-
-const adminStats =
-  document.getElementById('adminStats');
-
-const adminOverview =
-  document.getElementById('adminOverview');
-
-const adminUsers =
-  document.getElementById('adminUsers');
-
-const adminIncidents =
-  document.getElementById('adminIncidents');
-
-const exportIncidentsBtn =
-  document.getElementById('exportIncidentsBtn');
-
-const importIncidentsInput =
-  document.getElementById('importIncidentsInput');
-
-const adminUsernameInput =
-  document.getElementById('adminUsername');
-
-const adminPasswordInput =
-  document.getElementById('adminPassword');
-
-const adminLogoutBtn =
-  document.getElementById('adminLogoutBtn');
-
-const toast =
-  document.getElementById('toast');
-
-const adminTabs =
-  Array.from(
-    document.querySelectorAll(
-      '[data-admin-tab]'
-    )
-  );
+let adminCredentials = {
+  ...DEFAULT_ADMIN
+};
 
 
 /* =====================================================
    ADMIN SESSION
-===================================================== */
+   ===================================================== */
 
 const ADMIN_SESSION_KEY =
-  'rakshasutra-admin-session';
-
-let activeAdminTab =
-  'overview';
+  "rakshasutra-admin-authenticated";
 
 
 /* =====================================================
-   HELPERS
-===================================================== */
+   ADMIN AUTHENTICATION
+   ===================================================== */
 
-function escapeHTML(value) {
-
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-
-function formatDate(value) {
-
-  if (!value) {
-    return 'Not available';
-  }
-
-  try {
-
-    return new Date(value)
-      .toLocaleString(
-        undefined,
-        {
-          dateStyle: 'medium',
-          timeStyle: 'short'
-        }
-      );
-
-  } catch {
-
-    return String(value);
-  }
-}
-
-
-function isResolved(incident) {
+function authenticateAdmin(username, password) {
 
   return (
-    incident?.status === 'resolved' ||
-    incident?.resolved === true ||
-    Boolean(incident?.resolvedAt)
+    String(username || "") ===
+      adminCredentials.username &&
+
+    String(password || "") ===
+      adminCredentials.password
   );
 }
 
 
-function isSOS(incident) {
+/* =====================================================
+   ADMIN SESSION
+   ===================================================== */
+
+function isAdminAuthenticated() {
 
   return (
-    String(incident?.type || '')
-      .toLowerCase() === 'sos'
+    localStorage.getItem(
+      ADMIN_SESSION_KEY
+    ) === "true"
   );
 }
 
 
-function showToast(message) {
+function setAdminAuthenticated(value) {
 
-  if (!toast) {
-    return;
-  }
+  if (value) {
 
-  toast.textContent =
-    message;
-
-  toast.classList.remove(
-    'hidden'
-  );
-
-  window.setTimeout(() => {
-
-    toast.classList.add(
-      'hidden'
+    localStorage.setItem(
+      ADMIN_SESSION_KEY,
+      "true"
     );
 
-  }, 2500);
+  } else {
+
+    localStorage.removeItem(
+      ADMIN_SESSION_KEY
+    );
+  }
 }
 
 
 /* =====================================================
-   SHOW / HIDE DASHBOARD
+   SET ADMIN CREDENTIALS
 ===================================================== */
 
-function showAdminDashboard() {
+function setAdminCredentials(
+  username,
+  password
+) {
 
-  if (!adminLoginPanel ||
-      !adminDashboard) {
-    return;
+  if (!username || !password) {
+    return false;
   }
 
-  adminLoginPanel.hidden =
-    true;
+  adminCredentials = {
+    username: String(username),
+    password: String(password)
+  };
 
-  adminDashboard.hidden =
-    false;
+  return true;
+}
 
-  if (adminLogoutBtn) {
 
-    adminLogoutBtn.hidden =
-      false;
+/* =====================================================
+   IMPORT INCIDENTS
+===================================================== */
+
+function importIncidents(entries) {
+
+  if (!Array.isArray(entries)) {
+    return 0;
   }
 
-  if (adminLoginMessage) {
+  let imported = 0;
 
-    adminLoginMessage.textContent =
-      'Access granted.';
-  }
+  entries.forEach((entry) => {
 
-  localStorage.setItem(
-    ADMIN_SESSION_KEY,
-    'true'
+    if (
+      !entry ||
+      typeof entry !== "object"
+    ) {
+      return;
+    }
+
+    addIncident({
+
+      id:
+        entry.id ||
+        (
+          typeof crypto !== "undefined" &&
+          crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`
+        ),
+
+      type:
+        entry.type ||
+        "unknown",
+
+      message:
+        entry.message ||
+        "Imported incident",
+
+      source:
+        entry.source ||
+        "import",
+
+      status:
+        entry.status ||
+        "active",
+
+      userId:
+        entry.userId ||
+        null,
+
+      userEmail:
+        entry.userEmail ||
+        null,
+
+      latitude:
+        entry.latitude ??
+        null,
+
+      longitude:
+        entry.longitude ??
+        null,
+
+      createdAt:
+        entry.createdAt ||
+        new Date().toISOString(),
+
+      resolvedAt:
+        entry.resolvedAt ||
+        null
+    });
+
+    imported++;
+  });
+
+  return imported;
+}
+
+
+/* =====================================================
+   EXPORT INCIDENTS
+===================================================== */
+
+function exportIncidents() {
+
+  const incidents =
+    readIncidents();
+
+  return JSON.stringify(
+    incidents,
+    null,
+    2
   );
-
-  renderAdminPanel();
-}
-
-
-function hideAdminDashboard() {
-
-  if (adminLoginPanel) {
-
-    adminLoginPanel.hidden =
-      false;
-  }
-
-  if (adminDashboard) {
-
-    adminDashboard.hidden =
-      true;
-  }
-
-  if (adminLogoutBtn) {
-
-    adminLogoutBtn.hidden =
-      true;
-  }
-
-  if (adminLoginMessage) {
-
-    adminLoginMessage.textContent =
-      '';
-  }
 }
 
 
 /* =====================================================
-   RENDER STAT CARDS
+   CHECK ACTIVE SOS
 ===================================================== */
 
-function renderStats(
-  overview
+function isIncidentActive(
+  incident
 ) {
 
-  if (!adminStats) {
-    return;
+  if (!incident) {
+    return false;
   }
 
-  adminStats.innerHTML = `
+  if (
+    incident.status === "resolved" ||
+    incident.resolved === true ||
+    incident.resolvedAt
+  ) {
+    return false;
+  }
 
-    <div class="admin-stat">
-      <span>Registered Users</span>
-      <strong>
-        ${overview.userCount}
-      </strong>
-    </div>
-
-    <div class="admin-stat">
-      <span>Total Incidents</span>
-      <strong>
-        ${overview.incidentCount}
-      </strong>
-    </div>
-
-    <div class="admin-stat">
-      <span>Active SOS</span>
-      <strong>
-        ${overview.activeAlertCount}
-      </strong>
-    </div>
-
-    <div class="admin-stat">
-      <span>Resolved SOS</span>
-      <strong>
-        ${overview.resolvedAlertCount}
-      </strong>
-    </div>
-
-  `;
+  return (
+    String(
+      incident.type || ""
+    ).toLowerCase() === "sos"
+  );
 }
 
 
 /* =====================================================
-   OVERVIEW
+   ADMIN OVERVIEW
 ===================================================== */
 
-function renderOverview(
-  overview
-) {
-
-  if (!adminOverview) {
-    return;
-  }
-
-
-  const latest =
-    overview.latestIncident;
-
-
-  if (!latest) {
-
-    adminOverview.innerHTML = `
-
-      <div class="admin-list">
-
-        <div class="admin-list-item">
-
-          <strong>
-            🛡️ System status
-          </strong>
-
-          <p>
-            RakshaSutra admin monitoring
-            is ready.
-          </p>
-
-        </div>
-
-        <div class="admin-list-item">
-
-          <strong>
-            No incidents yet
-          </strong>
-
-          <p>
-            SOS incidents will appear here
-            when users activate SOS.
-          </p>
-
-        </div>
-
-      </div>
-    `;
-
-    return;
-  }
-
-
-  const latestStatus =
-    isResolved(latest)
-      ? '🟢 Resolved'
-      : isSOS(latest)
-        ? '🔴 Active SOS'
-        : '🟡 Recorded';
-
-
-  adminOverview.innerHTML = `
-
-    <div class="admin-list">
-
-      <div class="admin-list-item">
-
-        <strong>
-          🛡️ System status
-        </strong>
-
-        <p>
-          Guardian monitoring is active.
-        </p>
-
-      </div>
-
-
-      <div class="admin-list-item">
-
-        <strong>
-          Latest event
-        </strong>
-
-        <p>
-          ${escapeHTML(
-            String(
-              latest.type ||
-              'Unknown'
-            ).toUpperCase()
-          )}
-          •
-          ${formatDate(
-            latest.createdAt
-          )}
-        </p>
-
-        <p>
-          Status:
-          <strong>
-            ${latestStatus}
-          </strong>
-        </p>
-
-      </div>
-
-
-      <div class="admin-list-item">
-
-        <strong>
-          🚨 Active SOS
-        </strong>
-
-        <p>
-          ${
-            overview.activeAlertCount
-          }
-          active emergency incident(s).
-        </p>
-
-      </div>
-
-
-      <div class="admin-list-item">
-
-        <strong>
-          🟢 Resolved SOS
-        </strong>
-
-        <p>
-          ${
-            overview.resolvedAlertCount
-          }
-          resolved emergency incident(s).
-        </p>
-
-      </div>
-
-    </div>
-  `;
-}
-
-
-/* =====================================================
-   USERS
-===================================================== */
-
-function renderUsers(
-  users
-) {
-
-  if (!adminUsers) {
-    return;
-  }
-
-
-  if (!users.length) {
-
-    adminUsers.innerHTML = `
-
-      <div class="admin-list">
-
-        <div class="admin-list-item">
-
-          <strong>
-            👥 No registered users
-          </strong>
-
-          <p>
-            Registered accounts will
-            appear here.
-          </p>
-
-        </div>
-
-      </div>
-    `;
-
-    return;
-  }
-
-
-  adminUsers.innerHTML = `
-
-    <div class="admin-list">
-
-      ${users.map((user) => {
-
-        const name =
-          user.fullName ||
-          user.name ||
-          'User';
-
-
-        const email =
-          user.email ||
-          'Email not available';
-
-
-        const phone =
-          user.phone ||
-          'Phone not provided';
-
-
-        const created =
-          formatDate(
-            user.createdAt
-          );
-
-
-        return `
-
-          <div class="admin-list-item">
-
-            <strong>
-              👤 ${escapeHTML(name)}
-            </strong>
-
-            <p>
-              📧 ${escapeHTML(email)}
-            </p>
-
-            <p>
-              📱 ${escapeHTML(phone)}
-            </p>
-
-            <p>
-              🕐 Registered:
-              ${escapeHTML(created)}
-            </p>
-
-          </div>
-
-        `;
-
-      }).join('')}
-
-    </div>
-  `;
-}
-
-
-/* =====================================================
-   INCIDENTS
-===================================================== */
-
-function renderIncidents(
-  incidents
-) {
-
-  if (!adminIncidents) {
-    return;
-  }
-
-
-  if (!incidents.length) {
-
-    adminIncidents.innerHTML = `
-
-      <div class="admin-list">
-
-        <div class="admin-list-item">
-
-          <strong>
-            🚨 No incidents
-          </strong>
-
-          <p>
-            No SOS or emergency incidents
-            have been recorded yet.
-          </p>
-
-        </div>
-
-      </div>
-    `;
-
-    return;
-  }
-
-
-  adminIncidents.innerHTML = `
-
-    <div class="admin-list">
-
-      ${incidents.map(
-        (incident) => {
-
-          const resolved =
-            isResolved(
-              incident
-            );
-
-
-          const sos =
-            isSOS(
-              incident
-            );
-
-
-          const status =
-            resolved
-              ? '🟢 RESOLVED'
-              : sos
-                ? '🔴 ACTIVE'
-                : '🟡 RECORDED';
-
-
-          const latitude =
-            incident.latitude ??
-            incident.location?.latitude;
-
-
-          const longitude =
-            incident.longitude ??
-            incident.location?.longitude;
-
-
-          let locationHTML =
-            '📍 Location not available';
-
-
-          if (
-            latitude !== undefined &&
-            latitude !== null &&
-            longitude !== undefined &&
-            longitude !== null
-          ) {
-
-            const mapsURL =
-              `https://www.google.com/maps?q=${encodeURIComponent(
-                `${latitude},${longitude}`
-              )}`;
-
-
-            locationHTML = `
-
-              📍
-              <a
-                href="${mapsURL}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View location
-              </a>
-
-              <br>
-
-              <small>
-                ${escapeHTML(latitude)},
-                ${escapeHTML(longitude)}
-              </small>
-            `;
-          }
-
-
-          return `
-
-            <div class="admin-list-item">
-
-              <strong>
-                ${status}
-              </strong>
-
-              <p>
-                Type:
-                ${escapeHTML(
-                  String(
-                    incident.type ||
-                    'unknown'
-                  ).toUpperCase()
-                )}
-              </p>
-
-              <p>
-                ${escapeHTML(
-                  incident.message ||
-                  'Emergency incident'
-                )}
-              </p>
-
-              <p>
-                🕐 Started:
-                ${escapeHTML(
-                  formatDate(
-                    incident.createdAt
-                  )
-                )}
-              </p>
-
-              ${
-                incident.resolvedAt
-                  ? `
-                    <p>
-                      🟢 Resolved:
-                      ${escapeHTML(
-                        formatDate(
-                          incident.resolvedAt
-                        )
-                      )}
-                    </p>
-                  `
-                  : ''
-              }
-
-              <p>
-                ${locationHTML}
-              </p>
-
-              ${
-                incident.userEmail
-                  ? `
-                    <p>
-                      👤 User:
-                      ${escapeHTML(
-                        incident.userEmail
-                      )}
-                    </p>
-                  `
-                  : ''
-              }
-
-            </div>
-
-          `;
-
-        }
-      ).join('')}
-
-    </div>
-  `;
-}
-
-
-/* =====================================================
-   MAIN RENDER
-===================================================== */
-
-function renderAdminPanel() {
-
-  const overview =
-    getAdminOverview();
+function getAdminOverview() {
 
   const users =
     readUsers();
@@ -721,211 +234,65 @@ function renderAdminPanel() {
   const incidents =
     readIncidents();
 
+  const activeAlerts =
+    incidents.filter(
+      isIncidentActive
+    );
 
-  renderStats(
-    overview
-  );
+  const resolvedAlerts =
+    incidents.filter(
+      (incident) =>
+        incident.status === "resolved" ||
+        incident.resolved === true ||
+        Boolean(incident.resolvedAt)
+    );
 
-  renderOverview(
-    overview
-  );
+  return {
 
-  renderUsers(
-    users
-  );
+    userCount:
+      users.length,
 
-  renderIncidents(
-    incidents
-  );
+    incidentCount:
+      incidents.length,
 
+    activeAlertCount:
+      activeAlerts.length,
 
-  /*
-   * Tab buttons.
-   */
+    resolvedAlertCount:
+      resolvedAlerts.length,
 
-  adminTabs.forEach(
-    (button) => {
+    activeAlerts,
 
-      const active =
-        button.dataset.adminTab ===
-        activeAdminTab;
+    resolvedAlerts,
 
-
-      button.classList.toggle(
-        'primary-btn',
-        active
-      );
-
-      button.classList.toggle(
-        'ghost-button',
-        !active
-      );
-
-    }
-  );
-
-
-  /*
-   * Hide all panels first.
-   */
-
-  [
-    adminOverview,
-    adminUsers,
-    adminIncidents
-  ].forEach(
-    (panel) => {
-
-      if (panel) {
-        panel.hidden =
-          true;
-      }
-
-    }
-  );
-
-
-  /*
-   * Show selected panel.
-   */
-
-  if (
-    activeAdminTab ===
-    'users'
-  ) {
-
-    if (adminUsers) {
-      adminUsers.hidden =
-        false;
-    }
-
-  } else if (
-    activeAdminTab ===
-    'incidents'
-  ) {
-
-    if (adminIncidents) {
-      adminIncidents.hidden =
-        false;
-    }
-
-  } else {
-
-    if (adminOverview) {
-      adminOverview.hidden =
-        false;
-    }
-
-  }
+    latestIncident:
+      incidents[0] ||
+      null
+  };
 }
 
 
 /* =====================================================
-   RESTORE SESSION
+   RESET ADMIN STATE
 ===================================================== */
 
-function restoreAdminSession() {
+function resetAdminState() {
 
-  if (
-    localStorage.getItem(
-      ADMIN_SESSION_KEY
-    ) === 'true'
-  ) {
+  adminCredentials = {
+    ...DEFAULT_ADMIN
+  };
 
-    showAdminDashboard();
-  }
+  setAdminAuthenticated(false);
 }
 
 
 /* =====================================================
-   LOGIN
+   GET ADMIN USERNAME
 ===================================================== */
 
-if (adminLoginForm) {
+function getAdminUsername() {
 
-  adminLoginForm.addEventListener(
-    'submit',
-    (event) => {
-
-      event.preventDefault();
-
-
-      const username =
-        adminUsernameInput?.value
-        .trim() || '';
-
-
-      const password =
-        adminPasswordInput?.value
-        || '';
-
-
-      if (
-        authenticateAdmin(
-          username,
-          password
-        )
-      ) {
-
-        showAdminDashboard();
-
-        showToast(
-          'Admin access granted.'
-        );
-
-      } else {
-
-        if (adminLoginMessage) {
-
-          adminLoginMessage.textContent =
-            'Invalid admin credentials.';
-        }
-
-        showToast(
-          'Invalid admin credentials.'
-        );
-      }
-
-    }
-  );
-}
-
-
-/* =====================================================
-   LOGOUT
-===================================================== */
-
-if (adminLogoutBtn) {
-
-  adminLogoutBtn.addEventListener(
-    'click',
-    () => {
-
-      localStorage.removeItem(
-        ADMIN_SESSION_KEY
-      );
-
-
-      if (adminUsernameInput) {
-        adminUsernameInput.value =
-          '';
-      }
-
-
-      if (adminPasswordInput) {
-        adminPasswordInput.value =
-          '';
-      }
-
-
-      hideAdminDashboard();
-
-      showToast(
-        'Admin logged out.'
-      );
-
-    }
-  );
+  return adminCredentials.username;
 }
 
 
@@ -933,169 +300,24 @@ if (adminLogoutBtn) {
    EXPORT
 ===================================================== */
 
-if (exportIncidentsBtn) {
+export {
 
-  exportIncidentsBtn.addEventListener(
-    'click',
-    () => {
+  authenticateAdmin,
 
-      const exported =
-        exportIncidents();
+  isAdminAuthenticated,
 
+  setAdminAuthenticated,
 
-      const blob =
-        new Blob(
-          [exported],
-          {
-            type:
-              'application/json'
-          }
-        );
+  exportIncidents,
 
+  getAdminOverview,
 
-      const url =
-        URL.createObjectURL(
-          blob
-        );
+  importIncidents,
 
+  resetAdminState,
 
-      const link =
-        document.createElement(
-          'a'
-        );
+  setAdminCredentials,
 
+  getAdminUsername
 
-      link.href =
-        url;
-
-      link.download =
-        'rakshasutra-incidents.json';
-
-
-      document.body.appendChild(
-        link
-      );
-
-      link.click();
-
-      link.remove();
-
-
-      URL.revokeObjectURL(
-        url
-      );
-
-
-      showToast(
-        'Incident data exported.'
-      );
-
-    }
-  );
-}
-
-
-/* =====================================================
-   IMPORT
-===================================================== */
-
-if (importIncidentsInput) {
-
-  importIncidentsInput.addEventListener(
-    'change',
-    (event) => {
-
-      const file =
-        event.target.files?.[0];
-
-
-      if (!file) {
-        return;
-      }
-
-
-      const reader =
-        new FileReader();
-
-
-      reader.onload =
-        () => {
-
-          try {
-
-            const parsed =
-              JSON.parse(
-                reader.result
-              );
-
-
-            const entries =
-              Array.isArray(parsed)
-                ? parsed
-                : [];
-
-
-            const count =
-              importIncidents(
-                entries
-              );
-
-
-            renderAdminPanel();
-
-
-            showToast(
-              `${count} incidents imported.`
-            );
-
-          } catch {
-
-            showToast(
-              'Import failed. Please use valid JSON.'
-            );
-
-          }
-
-        };
-
-
-      reader.readAsText(
-        file
-      );
-
-    }
-  );
-}
-
-
-/* =====================================================
-   TABS
-===================================================== */
-
-adminTabs.forEach(
-  (button) => {
-
-    button.addEventListener(
-      'click',
-      () => {
-
-        activeAdminTab =
-          button.dataset.adminTab ||
-          'overview';
-
-        renderAdminPanel();
-
-      }
-    );
-
-  }
-);
-
-
-/* =====================================================
-   INITIALIZE
-===================================================== */
-
-renderAdminPanel();
-
-restoreAdminSession();
+};
