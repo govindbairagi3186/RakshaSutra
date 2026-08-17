@@ -1,1105 +1,2413 @@
-```javascript
-/* =========================================================
-   RAKSHASUTRA PROFILE + SETTINGS
-   REPLACE THE PREVIOUS PROFILE/SETTINGS CODE WITH THIS
-   ========================================================= */
+import { addIncident, readUsers } from './dataStore.js';
 
-(function () {
-  "use strict";
+const $ = (id) => document.getElementById(id);
 
-  /* =======================================================
-     ELEMENTS
-     ======================================================= */
+const SESSION_KEY = 'rakshasutra-current-user';
+const SOS_DURATION = 5 * 60 * 1000;
 
-  const $ = (id) => document.getElementById(id);
+const els = {
+  sosBtn: $('sosBtn'),
+  voiceBtn: $('voiceBtn'),
+  callBtn: $('callBtn'),
+  shareBtn: $('shareBtn'),
+  scanBtn: $('scanBtn'),
+  logoutBtn: $('logoutBtn'),
 
-  const profileButton = $("profileButton");
-  const profileDropdown = $("profileDropdown");
+  userBadge: $('userBadge'),
+  riskScore: $('riskScore'),
+  locationText: $('locationText'),
+  coordsText: $('coordsText'),
+  statusNote: $('statusNote'),
+  activityList: $('activityList'),
+  toast: $('toast'),
 
-  const profileAvatarText = $("profileAvatarText");
-  const profileDropdownAvatar = $("profileDropdownAvatar");
-  const profileDropdownName = $("profileDropdownName");
-  const profileDropdownEmail = $("profileDropdownEmail");
+  guardianName: $('guardianNameDisplay'),
+  guardianPhone: $('guardianPhoneDisplay'),
+  trustedName: $('trustedNameDisplay'),
+  trustedPhone: $('trustedPhoneDisplay'),
+  trustedAddress: $('trustedAddressDisplay'),
 
-  const profileInfoBtn = $("profileInfoBtn");
-  const editProfileBtn = $("editProfileBtn");
-  const changePasswordMenuBtn = $("changePasswordMenuBtn");
-  const themeMenuBtn = $("themeMenuBtn");
-  const rateAppBtn = $("rateAppBtn");
+  guardianSmsBtn: $('guardianSmsBtn'),
+  trustedSmsBtn: $('trustedSmsBtn'),
 
-  const settingsModal = $("settingsModal");
-  const closeSettingsBtn = $("closeSettingsBtn");
+  emergencyModal: $('emergencyModal'),
+  emergencySummary: $('emergencySummary'),
+  closeEmergencyBtn: $('closeEmergencyBtn'),
+  guardianEmergencySmsBtn: $('guardianEmergencySmsBtn'),
+  trustedEmergencySmsBtn: $('trustedEmergencySmsBtn'),
 
-  const settingsProfileName = $("settingsProfileName");
-  const settingsProfileEmail = $("settingsProfileEmail");
-  const settingsProfilePhone = $("settingsProfilePhone");
-  const settingsGuardianName = $("settingsGuardianName");
-  const settingsTrustedName = $("settingsTrustedName");
-  const settingsSafeAddress = $("settingsSafeAddress");
+  safeBtn: $('safeNowBtn'),
+  sosTimer: $('sosTimer'),
+  sosState: $('sosState'),
 
-  const editProfileForm = $("editProfileForm");
-  const editProfileMessage = $("editProfileMessage");
+  callModal: $('callModal'),
+  callName: $('callName'),
+  callStatus: $('callStatus'),
+  incomingCallScreen: $('incomingCallScreen'),
+  pickupScreen: $('pickupScreen'),
+  answerCallBtn: $('answerCallBtn'),
+  declineCallBtn: $('declineCallBtn'),
+  endCallBtn: $('endCallBtn')
+};
 
-  const editName = $("editName");
-  const editEmail = $("editEmail");
-  const editPhone = $("editPhone");
-  const editGuardianName = $("editGuardianName");
-  const editGuardianPhone = $("editGuardianPhone");
-  const editTrustedName = $("editTrustedName");
-  const editTrustedPhone = $("editTrustedPhone");
-  const editSafeAddress = $("editSafeAddress");
+let currentUser = null;
+let lastPosition = null;
 
-  const openPasswordSectionBtn = $("openPasswordSectionBtn");
+let sosActive = false;
+let locationWatchId = null;
 
-  const themeOptions =
-    document.querySelectorAll(".theme-option");
+let sosStartedAt = null;
+let sosTimerInterval = null;
 
-  const ratingStars =
-    document.querySelectorAll(".rating-star");
-
-  const ratingMessage = $("ratingMessage");
-
-  const SETTINGS_THEME_KEY = "rakshasutra-theme";
-  const SETTINGS_RATING_KEY = "rakshasutra-rating";
+let ringtoneTimer = null;
+let audioContext = null;
 
 
-  /* =======================================================
-     CURRENT USER
-     USE EXISTING GLOBAL IF AVAILABLE
-     ======================================================= */
+/* =====================================================
+   TOAST
+===================================================== */
 
-  function getCurrentUserSafe() {
-    try {
-      if (
-        typeof currentUser !== "undefined" &&
-        currentUser
-      ) {
-        return currentUser;
-      }
-    } catch (error) {}
+function showToast(message) {
+  if (!els.toast) return;
 
-    try {
-      const possibleKeys = [
-        "rakshasutra-current-user",
-        "rakshasutra-currentUser",
-        "currentUser",
-        "loggedInUser",
-        "user"
-      ];
+  els.toast.textContent = message;
+  els.toast.classList.remove('hidden');
 
-      for (const key of possibleKeys) {
-        const value = localStorage.getItem(key);
+  window.clearTimeout(showToast.timer);
 
-        if (!value) continue;
+  showToast.timer = window.setTimeout(() => {
+    els.toast.classList.add('hidden');
+  }, 3200);
+}
 
-        try {
-          const parsed = JSON.parse(value);
 
-          if (parsed && typeof parsed === "object") {
-            return parsed;
-          }
-        } catch (error) {}
-      }
-    } catch (error) {}
+/* =====================================================
+   ACTIVITY
+===================================================== */
 
+function addActivity(message) {
+  if (!els.activityList) return;
+
+  const item = document.createElement('li');
+
+  item.textContent = message;
+
+  els.activityList.prepend(item);
+}
+
+
+/* =====================================================
+   SESSION
+===================================================== */
+
+function saveSession(user) {
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone,
+
+      guardianName: user.guardianName,
+      guardianPhone: user.guardianPhone,
+
+      trustedName: user.trustedName,
+      trustedPhone: user.trustedPhone,
+
+      trustedAddress: user.trustedAddress
+    })
+  );
+}
+
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+
+    if (!raw) return null;
+
+    const snapshot = JSON.parse(raw);
+
+    const users = readUsers();
+
+    const latest = users.find(
+      (user) => user.id === snapshot.id
+    );
+
+    return latest || snapshot;
+
+  } catch {
     return null;
   }
+}
 
 
-  /* =======================================================
-     TOAST
-     ======================================================= */
-
-  function safeToast(message) {
-    try {
-      if (
-        typeof showToast === "function"
-      ) {
-        showToast(message);
-        return;
-      }
-    } catch (error) {}
-
-    let toast = document.getElementById(
-      "rakshasutraSettingsToast"
-    );
-
-    if (!toast) {
-      toast = document.createElement("div");
-
-      toast.id =
-        "rakshasutraSettingsToast";
-
-      toast.style.position = "fixed";
-      toast.style.bottom = "25px";
-      toast.style.left = "50%";
-      toast.style.transform =
-        "translateX(-50%)";
-      toast.style.zIndex = "99999";
-      toast.style.padding = "12px 18px";
-      toast.style.borderRadius = "12px";
-      toast.style.background = "#111827";
-      toast.style.color = "#fff";
-      toast.style.fontSize = "14px";
-      toast.style.boxShadow =
-        "0 10px 30px rgba(0,0,0,.35)";
-
-      document.body.appendChild(toast);
-    }
-
-    toast.textContent = message;
-    toast.style.display = "block";
-
-    clearTimeout(
-      window.rakshaToastTimer
-    );
-
-    window.rakshaToastTimer =
-      setTimeout(() => {
-        toast.style.display = "none";
-      }, 2500);
+function requireLogin() {
+  if (!currentUser) {
+    window.location.href = 'login.html';
+    return false;
   }
 
+  return true;
+}
 
-  /* =======================================================
-     PROFILE MENU
-     ======================================================= */
 
-  function openProfileMenu() {
-    if (!profileDropdown) return;
+/* =====================================================
+   CONTACTS
+===================================================== */
 
-    profileDropdown.classList.add("open");
+function contact(kind) {
+  if (!currentUser) return null;
 
-    if (profileButton) {
-      profileButton.setAttribute(
-        "aria-expanded",
-        "true"
-      );
-    }
+  if (kind === 'guardian') {
+    return {
+      name: currentUser.guardianName || 'Guardian',
+      phone: currentUser.guardianPhone || ''
+    };
   }
 
-
-  function closeProfileMenu() {
-    if (!profileDropdown) return;
-
-    profileDropdown.classList.remove("open");
-
-    if (profileButton) {
-      profileButton.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-    }
-  }
+  return {
+    name: currentUser.trustedName || 'Trusted Contact',
+    phone: currentUser.trustedPhone || ''
+  };
+}
 
 
-  function toggleProfileMenu() {
-    if (!profileDropdown) return;
-
-    if (
-      profileDropdown.classList.contains("open")
-    ) {
-      closeProfileMenu();
-    } else {
-      openProfileMenu();
-    }
-  }
+function cleanPhone(phone) {
+  return String(phone || '').replace(/[^0-9+]/g, '');
+}
 
 
-  /* =======================================================
-     PROFILE PHOTO
-     ======================================================= */
+/* =====================================================
+   GPS
+===================================================== */
 
-  function getProfilePhoto(user) {
-    if (!user) return "";
+function getPosition() {
+  return new Promise((resolve, reject) => {
 
-    return (
-      user.profilePhoto ||
-      user.profilePicture ||
-      user.avatar ||
-      user.photoURL ||
-      user.photo ||
-      ""
-    );
-  }
-
-
-  function renderAvatar(element, photo) {
-    if (!element) return;
-
-    element.innerHTML = "";
-
-    if (photo) {
-      const img =
-        document.createElement("img");
-
-      img.src = photo;
-      img.alt = "Profile photo";
-
-      img.onerror = function () {
-        element.textContent = "👤";
-      };
-
-      element.appendChild(img);
-    } else {
-      element.textContent = "👤";
-    }
-  }
-
-
-  /* =======================================================
-     RENDER PROFILE
-     ======================================================= */
-
-  function renderProfile() {
-    const user =
-      getCurrentUserSafe();
-
-    if (!user) {
-      if (profileDropdownName) {
-        profileDropdownName.textContent =
-          "User";
-      }
-
-      if (profileDropdownEmail) {
-        profileDropdownEmail.textContent =
-          "";
-      }
-
-      renderAvatar(
-        profileAvatarText,
-        ""
-      );
-
-      renderAvatar(
-        profileDropdownAvatar,
-        ""
+    if (!navigator.geolocation) {
+      reject(
+        new Error('GPS is not available in this browser.')
       );
 
       return;
     }
 
-    const name =
-      user.fullName ||
-      user.name ||
-      user.username ||
-      "User";
-
-    const email =
-      user.email ||
-      "No email available";
-
-    if (profileDropdownName) {
-      profileDropdownName.textContent =
-        name;
-    }
-
-    if (profileDropdownEmail) {
-      profileDropdownEmail.textContent =
-        email;
-    }
-
-    if (settingsProfileName) {
-      settingsProfileName.textContent =
-        name;
-    }
-
-    if (settingsProfileEmail) {
-      settingsProfileEmail.textContent =
-        email;
-    }
-
-    if (settingsProfilePhone) {
-      settingsProfilePhone.textContent =
-        user.phone ||
-        user.mobile ||
-        "—";
-    }
-
-    if (settingsGuardianName) {
-      settingsGuardianName.textContent =
-        user.guardianName ||
-        user.guardian?.name ||
-        "—";
-    }
-
-    if (settingsTrustedName) {
-      settingsTrustedName.textContent =
-        user.trustedName ||
-        user.trustedPerson?.name ||
-        "—";
-    }
-
-    if (settingsSafeAddress) {
-      settingsSafeAddress.textContent =
-        user.trustedAddress ||
-        user.safeAddress ||
-        "—";
-    }
-
-    const photo =
-      getProfilePhoto(user);
-
-    renderAvatar(
-      profileAvatarText,
-      photo
+    navigator.geolocation.getCurrentPosition(
+      resolve,
+      reject,
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
     );
+  });
+}
 
-    renderAvatar(
-      profileDropdownAvatar,
-      photo
-    );
+
+function setPosition(position) {
+
+  lastPosition = {
+    latitude:
+      Number(position.coords.latitude.toFixed(6)),
+
+    longitude:
+      Number(position.coords.longitude.toFixed(6)),
+
+    accuracy:
+      Math.round(position.coords.accuracy || 0),
+
+    timestamp:
+      new Date().toISOString()
+  };
+
+
+  if (els.locationText) {
+    els.locationText.textContent =
+      'LIVE GPS ACTIVE';
   }
 
 
-  /* =======================================================
-     SETTINGS MODAL
-     ======================================================= */
+  if (els.coordsText) {
+    els.coordsText.textContent =
+      `${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`;
+  }
+}
 
-  function openSettings(section) {
-    if (!settingsModal) return;
 
-    closeProfileMenu();
+function mapsLink() {
 
-    settingsModal.classList.add("open");
+  if (!lastPosition) {
+    return '';
+  }
 
-    settingsModal.setAttribute(
-      "aria-hidden",
-      "false"
+  return `https://maps.google.com/?q=${lastPosition.latitude},${lastPosition.longitude}`;
+}
+
+
+/* =====================================================
+   SOS MESSAGE
+===================================================== */
+
+function buildMessage() {
+
+  return [
+    '🚨 RAKSHASUTRA SOS ALERT',
+
+    `${currentUser.fullName || 'User'} needs help.`,
+
+    `Time: ${new Date().toLocaleString('en-IN')}`,
+
+    lastPosition
+      ? `Current location: ${mapsLink()}`
+      : 'Location: GPS unavailable.',
+
+    `GPS accuracy: ${lastPosition?.accuracy ?? 'unknown'}m`,
+
+    'RakshaSutra SOS is active.',
+
+    'Please contact the user immediately.'
+  ].join('\n');
+}
+
+
+/* =====================================================
+   SAFE MESSAGE
+===================================================== */
+
+function buildSafeMessage() {
+
+  return [
+    '🟢 RAKSHASUTRA SAFETY UPDATE',
+
+    `${currentUser.fullName || 'The user'} has confirmed that they are safe.`,
+
+    `Time: ${new Date().toLocaleString('en-IN')}`,
+
+    'The RakshaSutra SOS session has been resolved.',
+
+    'Location sharing has been stopped.',
+
+    'No further action is required.'
+  ].join('\n');
+}
+
+
+/* =====================================================
+   SMS
+===================================================== */
+
+function smsTo(kind, message = buildMessage()) {
+
+  const c = contact(kind);
+
+  if (!c?.phone) {
+
+    showToast(
+      `${kind === 'guardian'
+        ? 'Guardian'
+        : 'Trusted contact'} phone number is not saved.`
     );
 
-    renderProfile();
-    fillEditForm();
-    loadRating();
-    applySavedTheme();
-
-    setTimeout(() => {
-      let targetId =
-        "profileInfoSection";
-
-      if (section === "edit") {
-        targetId =
-          "editProfileSection";
-      }
-
-      if (section === "password") {
-        targetId =
-          "settingsPasswordSection";
-      }
-
-      if (section === "theme") {
-        targetId =
-          "themeSection";
-      }
-
-      if (section === "rating") {
-        targetId =
-          "ratingSection";
-      }
-
-      const target =
-        document.getElementById(
-          targetId
-        );
-
-      if (target) {
-        target.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
-      }
-    }, 100);
+    return;
   }
 
 
-  function closeSettings() {
-    if (!settingsModal) return;
-
-    settingsModal.classList.remove(
-      "open"
-    );
-
-    settingsModal.setAttribute(
-      "aria-hidden",
-      "true"
-    );
-  }
+  const body =
+    encodeURIComponent(message);
 
 
-  /* =======================================================
-     EDIT PROFILE
-     ======================================================= */
-
-  function fillEditForm() {
-    const user =
-      getCurrentUserSafe();
-
-    if (!user) return;
-
-    if (editName) {
-      editName.value =
-        user.fullName ||
-        user.name ||
-        "";
-    }
-
-    if (editEmail) {
-      editEmail.value =
-        user.email ||
-        "";
-    }
-
-    if (editPhone) {
-      editPhone.value =
-        user.phone ||
-        user.mobile ||
-        "";
-    }
-
-    if (editGuardianName) {
-      editGuardianName.value =
-        user.guardianName ||
-        user.guardian?.name ||
-        "";
-    }
-
-    if (editGuardianPhone) {
-      editGuardianPhone.value =
-        user.guardianPhone ||
-        user.guardian?.phone ||
-        "";
-    }
-
-    if (editTrustedName) {
-      editTrustedName.value =
-        user.trustedName ||
-        user.trustedPerson?.name ||
-        "";
-    }
-
-    if (editTrustedPhone) {
-      editTrustedPhone.value =
-        user.trustedPhone ||
-        user.trustedPerson?.phone ||
-        "";
-    }
-
-    if (editSafeAddress) {
-      editSafeAddress.value =
-        user.trustedAddress ||
-        user.safeAddress ||
-        "";
-    }
-  }
+  window.location.href =
+    `sms:${cleanPhone(c.phone)}?body=${body}`;
+}
 
 
-  function setEditMessage(
-    message,
-    success
+/* =====================================================
+   EMERGENCY MODAL
+===================================================== */
+
+function openEmergencyModal() {
+
+  if (!els.emergencyModal) return;
+
+  els.emergencySummary.textContent =
+    lastPosition
+
+      ? `SOS ACTIVE • GPS: ${lastPosition.latitude}, ${lastPosition.longitude} · ±${lastPosition.accuracy}m`
+
+      : 'SOS ACTIVE • Waiting for GPS location.';
+
+
+  els.emergencyModal.classList.remove('hidden');
+
+  els.emergencyModal.setAttribute(
+    'aria-hidden',
+    'false'
+  );
+}
+
+
+function closeEmergencyModal() {
+
+  if (!els.emergencyModal) return;
+
+  els.emergencyModal.classList.add('hidden');
+
+  els.emergencyModal.setAttribute(
+    'aria-hidden',
+    'true'
+  );
+}
+
+
+/* =====================================================
+   LIVE LOCATION WATCH
+===================================================== */
+
+function startLiveLocation() {
+
+  if (
+    !navigator.geolocation ||
+    locationWatchId !== null
   ) {
-    if (!editProfileMessage) return;
-
-    editProfileMessage.textContent =
-      message;
-
-    editProfileMessage.style.color =
-      success
-        ? "#22c55e"
-        : "#ef4444";
+    return;
   }
 
 
-  function getUsers() {
-    const keys = [
-      "rakshasutra-users",
-      "users",
-      "rakshaSutraUsers"
-    ];
+  locationWatchId =
+    navigator.geolocation.watchPosition(
 
-    for (const key of keys) {
-      try {
-        const data =
-          localStorage.getItem(key);
+      (position) => {
 
-        if (!data) continue;
+        setPosition(position);
 
-        const users =
-          JSON.parse(data);
+        if (sosActive) {
 
-        if (Array.isArray(users)) {
-          return {
-            key,
-            users
-          };
+          if (els.sosState) {
+            els.sosState.textContent =
+              '🔴 SOS ACTIVE • LIVE GPS';
+          }
         }
-      } catch (error) {}
-    }
+      },
 
-    return {
-      key: "rakshasutra-users",
-      users: []
-    };
-  }
+      (error) => {
 
-
-  function saveCurrentUser(
-    updatedUser
-  ) {
-    try {
-      if (
-        typeof saveSession ===
-        "function"
-      ) {
-        saveSession(
-          updatedUser
+        console.warn(
+          'Live GPS error:',
+          error
         );
+      },
+
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 15000
       }
-    } catch (error) {
-      console.warn(error);
-    }
+    );
+}
 
-    try {
-      localStorage.setItem(
-        "rakshasutra-current-user",
-        JSON.stringify(
-          updatedUser
-        )
-      );
-    } catch (error) {}
 
-    try {
-      localStorage.setItem(
-        "currentUser",
-        JSON.stringify(
-          updatedUser
-        )
-      );
-    } catch (error) {}
+function stopLiveLocation() {
+
+  if (locationWatchId !== null) {
+
+    navigator.geolocation.clearWatch(
+      locationWatchId
+    );
+
+    locationWatchId = null;
+  }
+}
+
+
+/* =====================================================
+   5-MINUTE TIMER
+===================================================== */
+
+function formatTime(milliseconds) {
+
+  const totalSeconds =
+    Math.max(
+      0,
+      Math.ceil(milliseconds / 1000)
+    );
+
+
+  const minutes =
+    Math.floor(totalSeconds / 60);
+
+
+  const seconds =
+    totalSeconds % 60;
+
+
+  return (
+    `${String(minutes).padStart(2, '0')}:` +
+    `${String(seconds).padStart(2, '0')}`
+  );
+}
+
+
+function updateSosTimer() {
+
+  if (!sosActive || !sosStartedAt) {
+    return;
   }
 
 
-  function saveEditedProfile(event) {
+  const elapsed =
+    Date.now() - sosStartedAt;
+
+
+  const remaining =
+    SOS_DURATION - elapsed;
+
+
+  if (remaining > 0) {
+
+    if (els.sosTimer) {
+
+      els.sosTimer.textContent =
+        `Safety confirmation available in ${formatTime(remaining)}`;
+    }
+
+
+    if (els.safeBtn) {
+
+      els.safeBtn.disabled = true;
+
+      els.safeBtn.textContent =
+        `🟢 ARE YOU SAFE NOW? (${formatTime(remaining)})`;
+    }
+
+
+    return;
+  }
+
+
+  /* ---------------------------------------------
+     FIVE MINUTES COMPLETED
+  --------------------------------------------- */
+
+  if (els.sosTimer) {
+
+    els.sosTimer.textContent =
+      '⚠️ 5 minutes completed — please confirm your safety.';
+  }
+
+
+  if (els.safeBtn) {
+
+    els.safeBtn.disabled = false;
+
+    els.safeBtn.textContent =
+      '🟢 ARE YOU SAFE NOW?';
+  }
+}
+
+
+function startSosTimer() {
+
+  sosStartedAt = Date.now();
+
+
+  window.clearInterval(
+    sosTimerInterval
+  );
+
+
+  updateSosTimer();
+
+
+  sosTimerInterval =
+    window.setInterval(
+      updateSosTimer,
+      1000
+    );
+}
+
+
+function stopSosTimer() {
+
+  window.clearInterval(
+    sosTimerInterval
+  );
+
+  sosTimerInterval = null;
+
+  sosStartedAt = null;
+}
+
+
+/* =====================================================
+   ACTIVATE SOS
+===================================================== */
+
+async function triggerSOS() {
+
+  if (!requireLogin()) {
+    return;
+  }
+
+
+  if (sosActive) {
+    return;
+  }
+
+
+  els.sosBtn.disabled = true;
+
+  els.sosBtn.textContent =
+    '⏳ Activating SOS…';
+
+
+  try {
+
+    /* ---------------------------------------------
+       GET FIRST GPS FIX
+    --------------------------------------------- */
+
+    try {
+
+      const position =
+        await getPosition();
+
+      setPosition(position);
+
+    } catch (error) {
+
+      showToast(
+        `GPS unavailable: ${error.message}`
+      );
+
+      addActivity(
+        'SOS started without a fresh GPS fix.'
+      );
+    }
+
+
+    /* ---------------------------------------------
+       ACTIVATE SOS
+    --------------------------------------------- */
+
+    sosActive = true;
+
+
+    /* ---------------------------------------------
+       START LIVE GPS IMMEDIATELY
+    --------------------------------------------- */
+
+    startLiveLocation();
+
+
+    /* ---------------------------------------------
+       START 5-MINUTE SAFETY TIMER
+    --------------------------------------------- */
+
+    startSosTimer();
+
+
+    /* ---------------------------------------------
+       UPDATE UI
+    --------------------------------------------- */
+
+    els.sosBtn.textContent =
+      '🛑 SOS ACTIVE';
+
+
+    els.statusNote.textContent =
+      '🚨 SOS ACTIVE. Live GPS tracking is running.';
+
+
+    if (els.sosState) {
+
+      els.sosState.textContent =
+        '🔴 SOS ACTIVE • LIVE GPS';
+    }
+
+
+    /* ---------------------------------------------
+       RECORD INCIDENT
+    --------------------------------------------- */
+
+    addIncident({
+
+      type: 'sos',
+
+      message:
+        'SOS activated. Live GPS session started.',
+
+      latitude:
+        lastPosition?.latitude ?? null,
+
+      longitude:
+        lastPosition?.longitude ?? null,
+
+      status:
+        'active',
+
+      startedAt:
+        new Date().toISOString()
+    });
+
+
+    addActivity(
+      '🚨 SOS activated. Live GPS session started.'
+    );
+
+
+    /* ---------------------------------------------
+       PREPARE SOS SMS
+    --------------------------------------------- */
+
+    showToast(
+      'SOS active. Send the prepared SOS message to trusted contacts.'
+    );
+
+
+    /* ---------------------------------------------
+       OPEN EMERGENCY CENTER
+    --------------------------------------------- */
+
+    openEmergencyModal();
+
+
+  } finally {
+
+    els.sosBtn.disabled = false;
+  }
+}
+
+
+/* =====================================================
+   CONFIRM USER IS SAFE
+===================================================== */
+
+function confirmSafe() {
+
+  if (!sosActive) {
+
+    showToast(
+      'There is no active SOS session.'
+    );
+
+    return;
+  }
+
+
+  const elapsed =
+    Date.now() - sosStartedAt;
+
+
+  /* ---------------------------------------------
+     REQUIRE FIVE MINUTES
+  --------------------------------------------- */
+
+  if (elapsed < SOS_DURATION) {
+
+    const remaining =
+      SOS_DURATION - elapsed;
+
+
+    showToast(
+      `Please wait ${formatTime(remaining)} before confirming safety.`
+    );
+
+    return;
+  }
+
+
+  /* ---------------------------------------------
+     STOP LIVE GPS
+  --------------------------------------------- */
+
+  stopLiveLocation();
+
+
+  /* ---------------------------------------------
+     STOP TIMER
+  --------------------------------------------- */
+
+  stopSosTimer();
+
+
+  /* ---------------------------------------------
+     CHANGE SOS STATE
+  --------------------------------------------- */
+
+  sosActive = false;
+
+
+  /* ---------------------------------------------
+     UPDATE BUTTON
+  --------------------------------------------- */
+
+  els.sosBtn.textContent =
+    '🚨 One-Tap SOS';
+
+
+  /* ---------------------------------------------
+     UPDATE STATUS
+  --------------------------------------------- */
+
+  els.statusNote.textContent =
+    '🟢 You are safe. SOS resolved and live location sharing stopped.';
+
+
+  if (els.sosState) {
+
+    els.sosState.textContent =
+      '🟢 YOU ARE SAFE';
+  }
+
+
+  if (els.sosTimer) {
+
+    els.sosTimer.textContent =
+      'SOS resolved. Live location sharing stopped.';
+  }
+
+
+  if (els.safeBtn) {
+
+    els.safeBtn.disabled = true;
+
+    els.safeBtn.textContent =
+      '🟢 YOU ARE SAFE';
+  }
+
+
+  /* ---------------------------------------------
+     RECORD RESOLUTION
+  --------------------------------------------- */
+
+  addIncident({
+
+    type:
+      'sos-resolved',
+
+    message:
+      'User confirmed they are safe. Live GPS stopped.',
+
+    latitude:
+      lastPosition?.latitude ?? null,
+
+    longitude:
+      lastPosition?.longitude ?? null,
+
+    status:
+      'resolved',
+
+    resolvedAt:
+      new Date().toISOString()
+  });
+
+
+  addActivity(
+    '🟢 Safety confirmed. Live GPS stopped.'
+  );
+
+
+  /* ---------------------------------------------
+     NOTIFY TRUSTED CONTACTS
+  --------------------------------------------- */
+
+  showToast(
+    'You are safe. Prepare the safety confirmation message for your trusted contacts.'
+  );
+
+
+  /*
+   * We intentionally use the phone's SMS composer here.
+   * A browser cannot silently send SMS messages without
+   * user permission.
+   */
+
+  smsTo(
+    'guardian',
+    buildSafeMessage()
+  );
+}
+
+
+/* =====================================================
+   STOP SOS MANUALLY
+===================================================== */
+
+function stopSOS() {
+
+  if (!sosActive) {
+    return;
+  }
+
+
+  stopLiveLocation();
+
+  stopSosTimer();
+
+  sosActive = false;
+
+
+  els.sosBtn.textContent =
+    '🚨 One-Tap SOS';
+
+
+  els.statusNote.textContent =
+    'SOS stopped on this device.';
+
+
+  if (els.sosState) {
+
+    els.sosState.textContent =
+      'SOS STOPPED';
+  }
+
+
+  if (els.sosTimer) {
+
+    els.sosTimer.textContent =
+      'SOS stopped.';
+  }
+
+
+  if (els.safeBtn) {
+
+    els.safeBtn.disabled = true;
+
+    els.safeBtn.textContent =
+      '🟢 ARE YOU SAFE NOW?';
+  }
+
+
+  addIncident({
+
+    type:
+      'sos-stop',
+
+    message:
+      'SOS manually stopped on the device.',
+
+    status:
+      'stopped',
+
+    stoppedAt:
+      new Date().toISOString()
+  });
+
+
+  addActivity(
+    'SOS manually stopped.'
+  );
+}
+
+
+/* =====================================================
+   EMERGENCY CALL
+===================================================== */
+
+function emergencyVoiceCall() {
+
+  if (!requireLogin()) {
+    return;
+  }
+
+
+  const c =
+    contact('guardian');
+
+
+  if (!c?.phone) {
+
+    showToast(
+      'Guardian phone number is not saved.'
+    );
+
+    return;
+  }
+
+
+  window.location.href =
+    `tel:${cleanPhone(c.phone)}`;
+}
+
+
+/* =====================================================
+   FAKE CALL RINGTONE
+===================================================== */
+
+function playRingtone() {
+
+  stopRingtone();
+
+
+  if (navigator.vibrate) {
+
+    navigator.vibrate(
+      [350, 180, 350, 180, 350, 180, 350]
+    );
+  }
+
+
+  try {
+
+    audioContext =
+      new (
+        window.AudioContext ||
+        window.webkitAudioContext
+      )();
+
+
+    const beep = () => {
+
+      if (!audioContext) {
+        return;
+      }
+
+
+      const osc =
+        audioContext.createOscillator();
+
+
+      const gain =
+        audioContext.createGain();
+
+
+      osc.frequency.value = 880;
+
+      gain.gain.value = 0.045;
+
+
+      osc.connect(gain);
+
+      gain.connect(
+        audioContext.destination
+      );
+
+
+      osc.start();
+
+      osc.stop(
+        audioContext.currentTime + 0.25
+      );
+    };
+
+
+    beep();
+
+
+    ringtoneTimer =
+      window.setInterval(
+        beep,
+        1200
+      );
+
+  } catch {
+    // Browser may block synthesized audio.
+  }
+}
+
+
+function stopRingtone() {
+
+  if (ringtoneTimer) {
+
+    window.clearInterval(
+      ringtoneTimer
+    );
+
+    ringtoneTimer = null;
+  }
+
+
+  if (audioContext) {
+
+    audioContext
+      .close()
+      .catch(() => {});
+
+    audioContext = null;
+  }
+
+
+  if (navigator.vibrate) {
+
+    navigator.vibrate(0);
+  }
+}
+
+
+/* =====================================================
+   FAKE CALL
+===================================================== */
+
+function openFakeCall() {
+
+  if (!requireLogin()) {
+    return;
+  }
+
+
+  const c =
+    contact('guardian') || {
+      name: 'Trusted Contact'
+    };
+
+
+  els.callName.textContent =
+    c.name || 'Trusted Contact';
+
+
+  els.callStatus.textContent =
+    'Ringing…';
+
+
+  els.incomingCallScreen.hidden =
+    false;
+
+
+  els.pickupScreen.hidden =
+    true;
+
+
+  els.callModal.classList.remove(
+    'hidden'
+  );
+
+
+  els.callModal.setAttribute(
+    'aria-hidden',
+    'false'
+  );
+
+
+  playRingtone();
+}
+
+
+function answerFakeCall() {
+
+  stopRingtone();
+
+
+  els.incomingCallScreen.hidden =
+    true;
+
+
+  els.pickupScreen.hidden =
+    false;
+
+
+  els.callStatus.textContent =
+    'Connected';
+
+
+  addActivity(
+    'Fake safety call answered.'
+  );
+}
+
+
+function closeFakeCall() {
+
+  stopRingtone();
+
+
+  els.callModal.classList.add(
+    'hidden'
+  );
+
+
+  els.callModal.setAttribute(
+    'aria-hidden',
+    'true'
+  );
+}
+
+
+/* =====================================================
+   RENDER USER
+===================================================== */
+
+function renderUser() {
+
+  els.userBadge.textContent =
+    `Welcome, ${
+      currentUser.fullName?.split(' ')[0] ||
+      'User'
+    }`;
+
+
+  els.guardianName.textContent =
+    currentUser.guardianName || '—';
+
+
+  els.guardianPhone.textContent =
+    currentUser.guardianPhone || '—';
+
+
+  els.trustedName.textContent =
+    currentUser.trustedName || '—';
+
+
+  els.trustedPhone.textContent =
+    currentUser.trustedPhone || '—';
+
+
+  els.trustedAddress.textContent =
+    currentUser.trustedAddress || '—';
+
+
+  els.statusNote.textContent =
+    'Account active. Your emergency controls are ready.';
+}
+
+
+/* =====================================================
+   EVENT LISTENERS
+===================================================== */
+
+els.sosBtn.addEventListener(
+  'click',
+  () => {
+
+    if (sosActive) {
+
+      stopSOS();
+
+    } else {
+
+      triggerSOS();
+    }
+  }
+);
+
+
+els.safeBtn?.addEventListener(
+  'click',
+  confirmSafe
+);
+
+
+els.voiceBtn.addEventListener(
+  'click',
+  emergencyVoiceCall
+);
+
+
+els.callBtn.addEventListener(
+  'click',
+  openFakeCall
+);
+
+
+els.shareBtn.addEventListener(
+  'click',
+  async () => {
+
+    if (!requireLogin()) {
+      return;
+    }
+
+
+    try {
+
+      setPosition(
+        await getPosition()
+      );
+
+
+      addIncident({
+
+        type:
+          'location-share',
+
+        message:
+          'Location SMS prepared.',
+
+        latitude:
+          lastPosition.latitude,
+
+        longitude:
+          lastPosition.longitude,
+
+        status:
+          'prepared'
+      });
+
+
+      addActivity(
+        'Location SMS prepared.'
+      );
+
+
+      smsTo('guardian');
+
+    } catch (error) {
+
+      showToast(
+        `GPS unavailable: ${error.message}`
+      );
+    }
+  }
+);
+
+
+els.guardianSmsBtn.addEventListener(
+  'click',
+  () => smsTo('guardian')
+);
+
+
+els.trustedSmsBtn.addEventListener(
+  'click',
+  () => smsTo('trusted')
+);
+
+
+els.guardianEmergencySmsBtn.addEventListener(
+  'click',
+  () => smsTo('guardian')
+);
+
+
+els.trustedEmergencySmsBtn.addEventListener(
+  'click',
+  () => smsTo('trusted')
+);
+
+
+els.closeEmergencyBtn.addEventListener(
+  'click',
+  closeEmergencyModal
+);
+
+
+els.declineCallBtn.addEventListener(
+  'click',
+  closeFakeCall
+);
+
+
+els.answerCallBtn.addEventListener(
+  'click',
+  answerFakeCall
+);
+
+
+els.endCallBtn.addEventListener(
+  'click',
+  closeFakeCall
+);
+
+
+els.scanBtn.addEventListener(
+  'click',
+  () => {
+
+    if (!requireLogin()) {
+      return;
+    }
+
+
+    const score =
+      Number(
+        els.riskScore.textContent || 24
+      );
+
+
+    els.riskScore.textContent =
+      String(
+        Math.min(
+          100,
+          score + 5
+        )
+      );
+
+
+    addIncident({
+
+      type:
+        'scan',
+
+      message:
+        'Safety scan completed.'
+    });
+
+
+    addActivity(
+      'Safety scan completed.'
+    );
+
+
+    showToast(
+      'Safety scan complete.'
+    );
+  }
+);
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+els.logoutBtn.addEventListener(
+  'click',
+  () => {
+
+    stopLiveLocation();
+
+    stopSosTimer();
+
+    stopRingtone();
+
+    localStorage.removeItem(
+      SESSION_KEY
+    );
+
+    window.location.href =
+      'login.html';
+  }
+);
+
+
+/* =====================================================
+   INITIALIZE
+===================================================== */
+
+currentUser =
+  loadSession();
+
+
+if (!currentUser) {
+
+  window.location.replace(
+    'login.html'
+  );
+
+} else {
+
+  renderUser();
+}
+
+
+
+/* =====================================================
+   RAKSHASUTRA SETTINGS FIXES
+   Safe event binding + password change
+===================================================== */
+
+function on(element, eventName, handler) {
+  if (!element) return;
+  element.addEventListener(eventName, handler);
+}
+
+function setPasswordMessage(message, success = false) {
+  const messageEl = document.getElementById('changePasswordMessage');
+  if (!messageEl) return;
+  messageEl.textContent = message;
+  messageEl.style.color = success ? '#38d996' : '#ff7188';
+}
+
+function setupPasswordControls() {
+  document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const id = button.getAttribute('data-password-toggle');
+      const input = document.getElementById(id);
+      if (!input) return;
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      button.textContent = showing ? '👁️' : '🙈';
+      button.setAttribute(
+        'aria-label',
+        showing ? 'Show password' : 'Hide password'
+      );
+    });
+  });
+
+  const form = document.getElementById('changePasswordForm');
+  const clearBtn = document.getElementById('clearPasswordFormBtn');
+
+  on(form, 'submit', (event) => {
     event.preventDefault();
 
-    const user =
-      getCurrentUserSafe();
+    if (!requireLogin()) return;
 
-    if (!user) {
-      setEditMessage(
-        "Please log in again.",
-        false
-      );
+    const current = document.getElementById('currentPassword')?.value || '';
+    const next = document.getElementById('newPassword')?.value || '';
+    const confirm = document.getElementById('confirmNewPassword')?.value || '';
+
+    if (!current || !next || !confirm) {
+      setPasswordMessage('Please fill in all password fields.');
       return;
     }
 
-    const name =
-      editName?.value.trim() ||
-      "";
-
-    const email =
-      editEmail?.value.trim() ||
-      "";
-
-    const phone =
-      editPhone?.value.trim() ||
-      "";
-
-    const guardianName =
-      editGuardianName?.value.trim() ||
-      "";
-
-    const guardianPhone =
-      editGuardianPhone?.value.trim() ||
-      "";
-
-    const trustedName =
-      editTrustedName?.value.trim() ||
-      "";
-
-    const trustedPhone =
-      editTrustedPhone?.value.trim() ||
-      "";
-
-    const safeAddress =
-      editSafeAddress?.value.trim() ||
-      "";
-
-    if (!name) {
-      setEditMessage(
-        "Please enter your name.",
-        false
-      );
+    if (next.length < 6) {
+      setPasswordMessage('New password must contain at least 6 characters.');
       return;
     }
 
-    if (
-      email &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        email
-      )
-    ) {
-      setEditMessage(
-        "Please enter a valid email.",
-        false
-      );
+    if (next !== confirm) {
+      setPasswordMessage('New password and confirmation do not match.');
       return;
     }
 
-    const updatedUser = {
-      ...user,
-
-      fullName: name,
-      name: name,
-
-      email,
-      phone,
-
-      guardianName,
-      guardianPhone,
-
-      trustedName,
-      trustedPhone,
-
-      trustedAddress: safeAddress,
-      safeAddress
-    };
-
-    const result =
-      getUsers();
-
-    const users =
-      result.users;
-
-    let index =
-      users.findIndex(
-        (item) => {
-
-          if (
-            user.id &&
-            item.id
-          ) {
-            return (
-              item.id ===
-              user.id
-            );
-          }
-
-          return (
-            item.email &&
-            user.email &&
-            item.email.toLowerCase() ===
-              user.email.toLowerCase()
-          );
-        }
-      );
+    const users = readUsers();
+    const index = users.findIndex((user) => user.id === currentUser.id);
 
     if (index === -1) {
-      users.push(
-        updatedUser
-      );
-
-      index =
-        users.length - 1;
+      setPasswordMessage('Your account could not be found.');
+      return;
     }
 
-    users[index] =
-      updatedUser;
+    if (String(users[index].password || '') !== String(current)) {
+      setPasswordMessage('Current password is incorrect.');
+      return;
+    }
+
+    users[index] = {
+      ...users[index],
+      password: next,
+      passwordChangedAt: new Date().toISOString()
+    };
 
     try {
-      localStorage.setItem(
-        result.key,
-        JSON.stringify(users)
-      );
+      localStorage.setItem('rakshasutra-users', JSON.stringify(users));
+      currentUser = users[index];
+      saveSession(currentUser);
 
-      saveCurrentUser(
-        updatedUser
-      );
-
-      try {
-        if (
-          typeof renderUser ===
-          "function"
-        ) {
-          renderUser();
-        }
-      } catch (error) {}
-
-      renderProfile();
-
-      setEditMessage(
-        "Profile updated successfully.",
-        true
-      );
-
-      safeToast(
-        "Profile updated successfully."
-      );
-
+      form.reset();
+      setPasswordMessage('Password changed successfully.', true);
+      showToast('Password changed successfully.');
+      addActivity('🔐 Account password was changed.');
     } catch (error) {
-      console.error(error);
-
-      setEditMessage(
-        "Unable to save profile.",
-        false
-      );
+      console.error('Password update error:', error);
+      setPasswordMessage('Could not save the new password.');
     }
+  });
+
+  on(clearBtn, 'click', () => {
+    form?.reset();
+    setPasswordMessage('');
+  });
+}
+
+/* Re-bind settings safely after the original dashboard has initialized. */
+setupPasswordControls();
+
+/* =====================================================
+   RAKSHASUTRA PROFILE & SETTINGS
+   ADD THIS CODE AT THE END OF user.js
+===================================================== */
+
+const profileEls = {
+  profileButton: document.getElementById('profileButton'),
+  profileDropdown: document.getElementById('profileDropdown'),
+
+  profileAvatarText: document.getElementById('profileAvatarText'),
+  profileDropdownAvatar: document.getElementById('profileDropdownAvatar'),
+  profileDropdownName: document.getElementById('profileDropdownName'),
+  profileDropdownEmail: document.getElementById('profileDropdownEmail'),
+
+  profileInfoBtn: document.getElementById('profileInfoBtn'),
+  editProfileBtn: document.getElementById('editProfileBtn'),
+  changePasswordMenuBtn: document.getElementById('changePasswordMenuBtn'),
+  themeMenuBtn: document.getElementById('themeMenuBtn'),
+  rateAppBtn: document.getElementById('rateAppBtn'),
+
+  settingsModal: document.getElementById('settingsModal'),
+  closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+
+  settingsProfileName: document.getElementById('settingsProfileName'),
+  settingsProfileEmail: document.getElementById('settingsProfileEmail'),
+  settingsProfilePhone: document.getElementById('settingsProfilePhone'),
+  settingsGuardianName: document.getElementById('settingsGuardianName'),
+  settingsTrustedName: document.getElementById('settingsTrustedName'),
+  settingsSafeAddress: document.getElementById('settingsSafeAddress'),
+
+  editProfileSection: document.getElementById('editProfileSection'),
+  editProfileForm: document.getElementById('editProfileForm'),
+  editProfileMessage: document.getElementById('editProfileMessage'),
+
+  editName: document.getElementById('editName'),
+  editEmail: document.getElementById('editEmail'),
+  editPhone: document.getElementById('editPhone'),
+  editGuardianName: document.getElementById('editGuardianName'),
+  editGuardianPhone: document.getElementById('editGuardianPhone'),
+  editTrustedName: document.getElementById('editTrustedName'),
+  editTrustedPhone: document.getElementById('editTrustedPhone'),
+  editSafeAddress: document.getElementById('editSafeAddress'),
+
+  themeSection: document.getElementById('themeSection'),
+  themeOptions: document.querySelectorAll('.theme-option'),
+
+  ratingStars: document.querySelectorAll('.rating-star'),
+  ratingMessage: document.getElementById('ratingMessage'),
+
+  openPasswordSectionBtn:
+    document.getElementById('openPasswordSectionBtn'),
+
+  settingsPasswordSection:
+    document.getElementById('settingsPasswordSection'),
+
+  securitySection:
+    document.getElementById('securitySection')
+};
+
+
+/* =====================================================
+   SETTINGS STORAGE
+===================================================== */
+
+const SETTINGS_THEME_KEY =
+  'rakshasutra-theme';
+
+const SETTINGS_RATING_KEY =
+  'rakshasutra-rating';
+
+
+/* =====================================================
+   PROFILE MENU
+===================================================== */
+
+function toggleProfileMenu() {
+  if (!profileEls.profileDropdown) return;
+
+  const isOpen =
+    profileEls.profileDropdown.classList.toggle('open');
+
+  if (profileEls.profileButton) {
+    profileEls.profileButton.setAttribute(
+      'aria-expanded',
+      String(isOpen)
+    );
   }
+}
 
 
-  /* =======================================================
-     THEME
-     ======================================================= */
+function closeProfileMenu() {
+  if (!profileEls.profileDropdown) return;
 
-  function applyTheme(theme) {
-    if (
-      theme !== "dark" &&
-      theme !== "light" &&
-      theme !== "system"
-    ) {
-      theme = "dark";
-    }
+  profileEls.profileDropdown.classList.remove('open');
 
-    if (theme === "system") {
-      const dark =
-        window.matchMedia &&
-        window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
+  if (profileEls.profileButton) {
+    profileEls.profileButton.setAttribute(
+      'aria-expanded',
+      'false'
+    );
+  }
+}
 
-      document.documentElement.setAttribute(
-        "data-theme",
-        dark ? "dark" : "light"
+
+/* =====================================================
+   SETTINGS MODAL
+===================================================== */
+
+function openSettings(section = 'profile') {
+  if (!requireLogin()) return;
+
+  closeProfileMenu();
+
+  if (!profileEls.settingsModal) return;
+
+  profileEls.settingsModal.classList.add('open');
+
+  profileEls.settingsModal.setAttribute(
+    'aria-hidden',
+    'false'
+  );
+
+  renderSettingsProfile();
+  fillEditProfileForm();
+  loadSavedRating();
+  applySavedTheme();
+
+  setTimeout(() => {
+    const target =
+      document.getElementById(
+        section === 'edit'
+          ? 'editProfileSection'
+          : section === 'password'
+            ? 'settingsPasswordSection'
+            : section === 'theme'
+              ? 'themeSection'
+              : section === 'rating'
+                ? 'ratingSection'
+                : 'profileInfoSection'
       );
 
-      document.body.setAttribute(
-        "data-theme",
-        dark ? "dark" : "light"
+    if (target) {
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }, 50);
+}
+
+
+function closeSettings() {
+  if (!profileEls.settingsModal) return;
+
+  profileEls.settingsModal.classList.remove('open');
+
+  profileEls.settingsModal.setAttribute(
+    'aria-hidden',
+    'true'
+  );
+}
+
+
+/* =====================================================
+   PROFILE AVATAR
+===================================================== */
+
+function getProfilePhoto(user) {
+  if (!user) return '';
+
+  return (
+    user.profilePhoto ||
+    user.avatar ||
+    user.photoURL ||
+    user.photo ||
+    ''
+  );
+}
+
+
+function renderProfileAvatar() {
+  if (!currentUser) return;
+
+  const photo =
+    getProfilePhoto(currentUser);
+
+  if (
+    profileEls.profileAvatarText
+  ) {
+    if (photo) {
+      profileEls.profileAvatarText.innerHTML =
+        '';
+
+      const img =
+        document.createElement('img');
+
+      img.src = photo;
+      img.alt = 'Profile photo';
+
+      profileEls.profileAvatarText.appendChild(
+        img
       );
     } else {
-      document.documentElement.setAttribute(
-        "data-theme",
-        theme
-      );
-
-      document.body.setAttribute(
-        "data-theme",
-        theme
-      );
+      profileEls.profileAvatarText.textContent =
+        '👤';
     }
-
-    try {
-      localStorage.setItem(
-        SETTINGS_THEME_KEY,
-        theme
-      );
-    } catch (error) {}
-
-    themeOptions.forEach(
-      (button) => {
-        button.classList.toggle(
-          "active",
-          button.dataset.theme ===
-            theme
-        );
-      }
-    );
   }
 
-
-  function applySavedTheme() {
-    let theme = "dark";
-
-    try {
-      theme =
-        localStorage.getItem(
-          SETTINGS_THEME_KEY
-        ) || "dark";
-    } catch (error) {}
-
-    applyTheme(theme);
-  }
-
-
-  /* =======================================================
-     RATING
-     ======================================================= */
-
-  function updateRatingStars(
-    rating
+  if (
+    profileEls.profileDropdownAvatar
   ) {
-    ratingStars.forEach(
-      (star) => {
-        const value =
-          Number(
-            star.dataset.rating
-          );
+    if (photo) {
+      profileEls.profileDropdownAvatar.innerHTML =
+        '';
 
-        star.classList.toggle(
-          "active",
-          value <= rating
-        );
-      }
-    );
-  }
+      const img =
+        document.createElement('img');
 
+      img.src = photo;
+      img.alt = 'Profile photo';
 
-  function saveRating(rating) {
-    try {
-      localStorage.setItem(
-        SETTINGS_RATING_KEY,
-        String(rating)
+      profileEls.profileDropdownAvatar.appendChild(
+        img
       );
-    } catch (error) {}
-
-    updateRatingStars(
-      rating
-    );
-
-    if (ratingMessage) {
-      ratingMessage.textContent =
-        `Thank you! You rated RakshaSutra ${rating}/5 ⭐`;
-
-      ratingMessage.style.color =
-        "#22c55e";
+    } else {
+      profileEls.profileDropdownAvatar.textContent =
+        '👤';
     }
+  }
+}
 
-    safeToast(
-      `Thank you for rating RakshaSutra ${rating}/5 ⭐`
+
+/* =====================================================
+   PROFILE INFORMATION
+===================================================== */
+
+function renderSettingsProfile() {
+  if (!currentUser) return;
+
+  if (
+    profileEls.profileDropdownName
+  ) {
+    profileEls.profileDropdownName.textContent =
+      currentUser.fullName ||
+      currentUser.name ||
+      'User';
+  }
+
+  if (
+    profileEls.profileDropdownEmail
+  ) {
+    profileEls.profileDropdownEmail.textContent =
+      currentUser.email ||
+      'No email available';
+  }
+
+  if (
+    profileEls.settingsProfileName
+  ) {
+    profileEls.settingsProfileName.textContent =
+      currentUser.fullName ||
+      currentUser.name ||
+      '—';
+  }
+
+  if (
+    profileEls.settingsProfileEmail
+  ) {
+    profileEls.settingsProfileEmail.textContent =
+      currentUser.email ||
+      '—';
+  }
+
+  if (
+    profileEls.settingsProfilePhone
+  ) {
+    profileEls.settingsProfilePhone.textContent =
+      currentUser.phone ||
+      '—';
+  }
+
+  if (
+    profileEls.settingsGuardianName
+  ) {
+    profileEls.settingsGuardianName.textContent =
+      currentUser.guardianName ||
+      '—';
+  }
+
+  if (
+    profileEls.settingsTrustedName
+  ) {
+    profileEls.settingsTrustedName.textContent =
+      currentUser.trustedName ||
+      '—';
+  }
+
+  if (
+    profileEls.settingsSafeAddress
+  ) {
+    profileEls.settingsSafeAddress.textContent =
+      currentUser.trustedAddress ||
+      '—';
+  }
+
+  renderProfileAvatar();
+}
+
+
+/* =====================================================
+   EDIT PROFILE FORM
+===================================================== */
+
+function fillEditProfileForm() {
+  if (!currentUser) return;
+
+  if (profileEls.editName) {
+    profileEls.editName.value =
+      currentUser.fullName ||
+      currentUser.name ||
+      '';
+  }
+
+  if (profileEls.editEmail) {
+    profileEls.editEmail.value =
+      currentUser.email ||
+      '';
+  }
+
+  if (profileEls.editPhone) {
+    profileEls.editPhone.value =
+      currentUser.phone ||
+      '';
+  }
+
+  if (profileEls.editGuardianName) {
+    profileEls.editGuardianName.value =
+      currentUser.guardianName ||
+      '';
+  }
+
+  if (profileEls.editGuardianPhone) {
+    profileEls.editGuardianPhone.value =
+      currentUser.guardianPhone ||
+      '';
+  }
+
+  if (profileEls.editTrustedName) {
+    profileEls.editTrustedName.value =
+      currentUser.trustedName ||
+      '';
+  }
+
+  if (profileEls.editTrustedPhone) {
+    profileEls.editTrustedPhone.value =
+      currentUser.trustedPhone ||
+      '';
+  }
+
+  if (profileEls.editSafeAddress) {
+    profileEls.editSafeAddress.value =
+      currentUser.trustedAddress ||
+      '';
+  }
+}
+
+
+function setEditProfileMessage(
+  message,
+  success = false
+) {
+  if (!profileEls.editProfileMessage) {
+    return;
+  }
+
+  profileEls.editProfileMessage.textContent =
+    message;
+
+  profileEls.editProfileMessage.style.color =
+    success
+      ? '#22c55e'
+      : '#ef4444';
+}
+
+
+function saveEditedProfile(event) {
+  event.preventDefault();
+
+  if (!requireLogin()) return;
+
+  const fullName =
+    profileEls.editName?.value.trim() || '';
+
+  const email =
+    profileEls.editEmail?.value.trim() || '';
+
+  const phone =
+    profileEls.editPhone?.value.trim() || '';
+
+  const guardianName =
+    profileEls.editGuardianName?.value.trim() || '';
+
+  const guardianPhone =
+    profileEls.editGuardianPhone?.value.trim() || '';
+
+  const trustedName =
+    profileEls.editTrustedName?.value.trim() || '';
+
+  const trustedPhone =
+    profileEls.editTrustedPhone?.value.trim() || '';
+
+  const trustedAddress =
+    profileEls.editSafeAddress?.value.trim() || '';
+
+  if (!fullName) {
+    setEditProfileMessage(
+      'Please enter your full name.'
+    );
+
+    return;
+  }
+
+  if (
+    email &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    setEditProfileMessage(
+      'Please enter a valid email address.'
+    );
+
+    return;
+  }
+
+  const users =
+    readUsers();
+
+  if (!Array.isArray(users)) {
+    setEditProfileMessage(
+      'Unable to access account data.'
+    );
+
+    return;
+  }
+
+  const index =
+    users.findIndex(
+      (user) =>
+        user.id === currentUser.id
+    );
+
+  if (index === -1) {
+    setEditProfileMessage(
+      'Your account could not be found.'
+    );
+
+    return;
+  }
+
+  const updatedUser = {
+    ...users[index],
+
+    fullName,
+    email,
+    phone,
+
+    guardianName,
+    guardianPhone,
+
+    trustedName,
+    trustedPhone,
+
+    trustedAddress
+  };
+
+  users[index] =
+    updatedUser;
+
+  try {
+    localStorage.setItem(
+      'rakshasutra-users',
+      JSON.stringify(users)
+    );
+
+    currentUser =
+      updatedUser;
+
+    saveSession(
+      currentUser
+    );
+
+    renderUser();
+    renderSettingsProfile();
+
+    setEditProfileMessage(
+      'Profile updated successfully.',
+      true
+    );
+
+    showToast(
+      'Profile updated successfully.'
+    );
+
+    addActivity(
+      '👤 Profile information was updated.'
+    );
+
+  } catch (error) {
+    console.error(
+      'Profile update error:',
+      error
+    );
+
+    setEditProfileMessage(
+      'Could not save profile changes.'
+    );
+  }
+}
+
+
+/* =====================================================
+   THEME
+===================================================== */
+
+function applyTheme(theme) {
+  if (
+    theme !== 'dark' &&
+    theme !== 'light' &&
+    theme !== 'system'
+  ) {
+    theme = 'dark';
+  }
+
+  document.documentElement.setAttribute(
+    'data-theme',
+    theme
+  );
+
+  document.body.setAttribute(
+    'data-theme',
+    theme
+  );
+
+  try {
+    localStorage.setItem(
+      SETTINGS_THEME_KEY,
+      theme
+    );
+  } catch (error) {
+    console.warn(
+      'Could not save theme:',
+      error
     );
   }
 
+  updateThemeButtons(
+    theme
+  );
+}
 
-  function loadRating() {
-    let rating = 0;
 
-    try {
-      rating =
-        Number(
-          localStorage.getItem(
-            SETTINGS_RATING_KEY
-          ) || 0
-        );
-    } catch (error) {}
-
-    updateRatingStars(
-      rating
+function getSavedTheme() {
+  try {
+    return (
+      localStorage.getItem(
+        SETTINGS_THEME_KEY
+      ) ||
+      'dark'
     );
+  } catch {
+    return 'dark';
+  }
+}
+
+
+function applySavedTheme() {
+  applyTheme(
+    getSavedTheme()
+  );
+}
+
+
+function updateThemeButtons(theme) {
+  if (!profileEls.themeOptions) {
+    return;
   }
 
+  profileEls.themeOptions.forEach(
+    (button) => {
+      const buttonTheme =
+        button.dataset.theme;
 
-  /* =======================================================
-     EVENT LISTENERS
-     ======================================================= */
+      button.classList.toggle(
+        'active',
+        buttonTheme === theme
+      );
+    }
+  );
+}
 
-  if (profileButton) {
-    profileButton.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-        event.stopPropagation();
 
-        toggleProfileMenu();
-      }
-    );
+function setupThemeButtons() {
+  if (!profileEls.themeOptions) {
+    return;
   }
 
-
-  if (profileInfoBtn) {
-    profileInfoBtn.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-
-        openSettings(
-          "profile"
-        );
-      }
-    );
-  }
-
-
-  if (editProfileBtn) {
-    editProfileBtn.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-
-        openSettings(
-          "edit"
-        );
-      }
-    );
-  }
-
-
-  if (changePasswordMenuBtn) {
-    changePasswordMenuBtn.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-
-        openSettings(
-          "password"
-        );
-      }
-    );
-  }
-
-
-  if (themeMenuBtn) {
-    themeMenuBtn.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-
-        openSettings(
-          "theme"
-        );
-      }
-    );
-  }
-
-
-  if (rateAppBtn) {
-    rateAppBtn.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-
-        openSettings(
-          "rating"
-        );
-      }
-    );
-  }
-
-
-  if (closeSettingsBtn) {
-    closeSettingsBtn.addEventListener(
-      "click",
-      closeSettings
-    );
-  }
-
-
-  if (settingsModal) {
-    settingsModal.addEventListener(
-      "click",
-      function (event) {
-        if (
-          event.target ===
-          settingsModal
-        ) {
-          closeSettings();
-        }
-      }
-    );
-  }
-
-
-  if (editProfileForm) {
-    editProfileForm.addEventListener(
-      "submit",
-      saveEditedProfile
-    );
-  }
-
-
-  if (openPasswordSectionBtn) {
-    openPasswordSectionBtn.addEventListener(
-      "click",
-      function () {
-        openSettings(
-          "password"
-        );
-      }
-    );
-  }
-
-
-  themeOptions.forEach(
+  profileEls.themeOptions.forEach(
     (button) => {
       button.addEventListener(
-        "click",
-        function () {
-          applyTheme(
-            button.dataset.theme
-          );
+        'click',
+        () => {
+          const theme =
+            button.dataset.theme;
 
-          safeToast(
-            "Theme changed successfully."
+          applyTheme(theme);
+
+          showToast(
+            `Theme changed to ${
+              theme.charAt(0).toUpperCase() +
+              theme.slice(1)
+            }.`
           );
         }
       );
     }
   );
+}
 
 
-  ratingStars.forEach(
+/* =====================================================
+   RATING
+===================================================== */
+
+function updateRatingStars(rating) {
+  if (!profileEls.ratingStars) {
+    return;
+  }
+
+  profileEls.ratingStars.forEach(
+    (star) => {
+      const value =
+        Number(
+          star.dataset.rating
+        );
+
+      star.classList.toggle(
+        'active',
+        value <= rating
+      );
+    }
+  );
+}
+
+
+function saveRating(rating) {
+  try {
+    localStorage.setItem(
+      SETTINGS_RATING_KEY,
+      String(rating)
+    );
+  } catch (error) {
+    console.warn(
+      'Could not save rating:',
+      error
+    );
+  }
+
+  updateRatingStars(
+    rating
+  );
+
+  if (profileEls.ratingMessage) {
+    profileEls.ratingMessage.textContent =
+      `Thank you! You rated RakshaSutra ${rating}/5.`;
+
+    profileEls.ratingMessage.style.color =
+      '#22c55e';
+  }
+
+  showToast(
+    `Thanks for rating RakshaSutra ${rating}/5 ⭐`
+  );
+}
+
+
+function loadSavedRating() {
+  let rating = 0;
+
+  try {
+    rating =
+      Number(
+        localStorage.getItem(
+          SETTINGS_RATING_KEY
+        ) || 0
+      );
+  } catch {
+    rating = 0;
+  }
+
+  updateRatingStars(
+    rating
+  );
+}
+
+
+function setupRating() {
+  if (!profileEls.ratingStars) {
+    return;
+  }
+
+  profileEls.ratingStars.forEach(
     (star) => {
       star.addEventListener(
-        "click",
-        function () {
-          saveRating(
+        'click',
+        () => {
+          const rating =
             Number(
               star.dataset.rating
-            )
+            );
+
+          saveRating(
+            rating
           );
         }
       );
     }
   );
+}
 
 
-  document.addEventListener(
-    "click",
-    function (event) {
+/* =====================================================
+   PASSWORD MENU
+===================================================== */
 
-      if (
-        !profileDropdown ||
-        !profileButton
-      ) {
-        return;
-      }
+function openPasswordFromSettings() {
+  closeProfileMenu();
+  closeSettings();
 
-      if (
-        !profileDropdown.contains(
-          event.target
-        ) &&
-        !profileButton.contains(
-          event.target
-        )
-      ) {
-        closeProfileMenu();
-      }
+  setTimeout(() => {
+    const security = document.getElementById('securitySection');
+    if (security) {
+      security.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+
+    const passwordInput = document.getElementById('currentPassword');
+    if (passwordInput) {
+      setTimeout(() => passwordInput.focus(), 250);
+    }
+  }, 50);
+}
+
+
+/* =====================================================
+   SETTINGS EVENTS
+===================================================== */
+
+function setupProfileSettings() {
+
+  on(
+    profileEls.profileButton,
+    'click',
+    (event) => {
+      event.stopPropagation();
+
+      toggleProfileMenu();
     }
   );
 
 
-  document.addEventListener(
-    "keydown",
-    function (event) {
+  on(
+    profileEls.profileInfoBtn,
+    'click',
+    () => {
+      openSettings(
+        'profile'
+      );
+    }
+  );
+
+
+  on(
+    profileEls.editProfileBtn,
+    'click',
+    () => {
+      openSettings(
+        'edit'
+      );
+    }
+  );
+
+
+  on(
+    profileEls.changePasswordMenuBtn,
+    'click',
+    () => {
+      openPasswordFromSettings();
+    }
+  );
+
+
+  on(
+    profileEls.themeMenuBtn,
+    'click',
+    () => {
+      openSettings(
+        'theme'
+      );
+    }
+  );
+
+
+  on(
+    profileEls.rateAppBtn,
+    'click',
+    () => {
+      openSettings(
+        'rating'
+      );
+    }
+  );
+
+
+  on(
+    profileEls.closeSettingsBtn,
+    'click',
+    closeSettings
+  );
+
+
+  on(
+    profileEls.settingsModal,
+    'click',
+    (event) => {
       if (
-        event.key === "Escape"
+        event.target ===
+        profileEls.settingsModal
       ) {
-        closeProfileMenu();
         closeSettings();
       }
     }
   );
 
 
-  /* =======================================================
-     INITIALIZE
-     ======================================================= */
-
-  renderProfile();
-  applySavedTheme();
-  loadRating();
-
-  console.log(
-    "✅ RakshaSutra Profile & Settings loaded successfully."
+  on(
+    profileEls.editProfileForm,
+    'submit',
+    saveEditedProfile
   );
 
-})();
-```
+
+  on(
+    profileEls.openPasswordSectionBtn,
+    'click',
+    openPasswordFromSettings
+  );
+
+
+  document.addEventListener(
+    'click',
+    (event) => {
+
+      if (
+        !profileEls.profileDropdown ||
+        !profileEls.profileButton
+      ) {
+        return;
+      }
+
+      const clickedInside =
+        profileEls.profileDropdown.contains(
+          event.target
+        ) ||
+        profileEls.profileButton.contains(
+          event.target
+        );
+
+      if (!clickedInside) {
+        closeProfileMenu();
+      }
+    }
+  );
+
+
+  document.addEventListener(
+    'keydown',
+    (event) => {
+
+      if (
+        event.key === 'Escape'
+      ) {
+        closeProfileMenu();
+        closeSettings();
+      }
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   START PROFILE SETTINGS
+===================================================== */
+
+setupProfileSettings();
+setupThemeButtons();
+setupRating();
+applySavedTheme();
+
+if (currentUser) {
+  renderSettingsProfile();
+  fillEditProfileForm();
+}
