@@ -1,1705 +1,1828 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#07111f" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#07111f" />
 
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" href="favicon.png" type="image/png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 
-    <title>RakshaSutra | User App</title>
+  <title>RakshaSutra | User Dashboard</title>
 
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="pwa.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="pwa.css" />
 
-    <style>
-      /* ================= ACCOUNT SECURITY ================= */
+  <style>
+    /* =====================================================
+       PROFILE BUTTON
+    ===================================================== */
 
-      .security-card {
-        margin-top: 24px;
+    .profile-menu-wrap {
+      position: relative;
+    }
+
+    .profile-button {
+      width: 46px;
+      height: 46px;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.08);
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-size: 20px;
+    }
+
+    .profile-button:hover {
+      transform: scale(1.04);
+      border-color: rgba(255,255,255,.5);
+    }
+
+    .profile-button img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* =====================================================
+       PROFILE DROPDOWN
+    ===================================================== */
+
+    .profile-dropdown {
+      position: absolute;
+      top: calc(100% + 12px);
+      right: 0;
+      width: 320px;
+      padding: 10px;
+      z-index: 3000;
+
+      display: none;
+
+      background: rgba(8,18,32,.98);
+      color: #fff;
+
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 20px;
+
+      box-shadow:
+        0 25px 70px rgba(0,0,0,.45);
+
+      backdrop-filter: blur(22px);
+    }
+
+    .profile-dropdown.open {
+      display: block;
+      animation: profileDrop .18s ease;
+    }
+
+    @keyframes profileDrop {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
       }
 
-      .security-card .card-head {
-        margin-bottom: 18px;
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
+    }
 
-      .password-form {
-        display: grid;
-        gap: 16px;
-        max-width: 620px;
-      }
+    .profile-dropdown-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
 
-      .password-field {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
+      padding: 12px;
+      margin-bottom: 8px;
 
-      .password-field label {
-        font-weight: 600;
-      }
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
 
-      .password-input-wrap {
-        position: relative;
-        display: flex;
-        align-items: center;
-      }
+    .profile-dropdown-avatar {
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
 
-      .password-input-wrap input {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 13px 52px 13px 14px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: rgba(255, 255, 255, 0.06);
-        color: inherit;
-        outline: none;
-        font-size: 15px;
-      }
+      border-radius: 50%;
 
-      .password-input-wrap input:focus {
-        border-color: rgba(255, 255, 255, 0.45);
-      }
+      background:
+        linear-gradient(
+          135deg,
+          #ff4d6d,
+          #4bc0ff
+        );
 
-      .password-toggle {
-        position: absolute;
-        right: 8px;
-        width: 38px;
-        height: 38px;
-        border: 0;
-        border-radius: 9px;
-        background: transparent;
-        color: inherit;
-        cursor: pointer;
-        font-size: 16px;
-      }
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-      .password-toggle:hover {
-        background: rgba(255, 255, 255, 0.08);
-      }
+      overflow: hidden;
 
-      .password-help {
-        margin: 0;
-        opacity: 0.72;
-        font-size: 13px;
-        line-height: 1.5;
-      }
+      font-size: 23px;
+    }
 
-      .password-message {
-        min-height: 22px;
-        margin: 0;
-        font-size: 14px;
-        font-weight: 600;
-      }
+    .profile-dropdown-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
-      .password-actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
+    .profile-dropdown-name {
+      font-weight: 700;
+      font-size: 15px;
+    }
 
-      /* ================= PROFILE BUTTON ================= */
+    .profile-dropdown-email {
+      margin-top: 3px;
+      font-size: 12px;
+      opacity: .6;
+      word-break: break-word;
+    }
 
-      .profile-menu-wrap {
-        position: relative;
-      }
+    .profile-menu-item {
+      width: 100%;
 
-      .profile-button {
-        width: 46px;
-        height: 46px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.25);
-        background: rgba(255, 255, 255, 0.08);
-        color: inherit;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        font-size: 21px;
-        transition: 0.2s ease;
-      }
+      border: 0;
+      background: transparent;
+      color: inherit;
 
-      .profile-button:hover {
-        transform: scale(1.05);
-        border-color: rgba(255, 255, 255, 0.55);
-      }
+      padding: 12px;
 
-      .profile-button img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
+      border-radius: 12px;
+
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      text-align: left;
+
+      cursor: pointer;
+
+      font-size: 14px;
+    }
+
+    .profile-menu-item:hover {
+      background: rgba(255,255,255,.08);
+    }
+
+    .profile-menu-item span:first-child {
+      width: 26px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    /* =====================================================
+       SETTINGS MODAL
+    ===================================================== */
+
+    .settings-modal {
+      position: fixed;
+      inset: 0;
+
+      z-index: 5000;
+
+      display: none;
+
+      align-items: center;
+      justify-content: center;
+
+      padding: 20px;
+
+      background: rgba(0,0,0,.68);
+
+      backdrop-filter: blur(10px);
+    }
+
+    .settings-modal.open {
+      display: flex;
+    }
+
+    .settings-card {
+      width: min(760px, 100%);
+      max-height: 90vh;
+
+      overflow-y: auto;
+
+      padding: 24px;
+
+      border-radius: 24px;
+
+      background: #0b1728;
+      color: #fff;
+
+      border: 1px solid rgba(255,255,255,.12);
+
+      box-shadow:
+        0 30px 100px rgba(0,0,0,.55);
+    }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 10px;
+    }
+
+    .settings-header h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .settings-header p {
+      margin: 5px 0 0;
+      opacity: .6;
+      font-size: 13px;
+    }
+
+    .settings-close {
+      width: 40px;
+      height: 40px;
+
+      border: 0;
+      border-radius: 11px;
+
+      background: rgba(255,255,255,.08);
+      color: inherit;
+
+      cursor: pointer;
+
+      font-size: 20px;
+    }
+
+    .settings-section {
+      padding: 20px 0;
+
+      border-bottom:
+        1px solid rgba(255,255,255,.08);
+    }
+
+    .settings-section:last-child {
+      border-bottom: 0;
+    }
+
+    .settings-section h3 {
+      margin: 0 0 6px;
+    }
+
+    .settings-section > p {
+      margin: 0 0 14px;
+      opacity: .65;
+      font-size: 13px;
+    }
+
+    /* PROFILE INFORMATION */
+
+    .profile-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px;
+    }
+
+    .profile-info-box {
+      padding: 14px;
+
+      border-radius: 14px;
+
+      background: rgba(255,255,255,.05);
+
+      border: 1px solid rgba(255,255,255,.06);
+    }
+
+    .profile-info-box span {
+      display: block;
+
+      margin-bottom: 5px;
+
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+
+      opacity: .5;
+    }
+
+    .profile-info-box strong {
+      display: block;
+      word-break: break-word;
+    }
+
+    /* EDIT PROFILE */
+
+    .edit-profile-form {
+      display: grid;
+      gap: 13px;
+    }
+
+    .settings-label {
+      display: block;
+
+      margin-bottom: 6px;
+
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .settings-input {
+      width: 100%;
+      box-sizing: border-box;
+
+      padding: 12px 13px;
+
+      border-radius: 11px;
+
+      border:
+        1px solid rgba(255,255,255,.13);
+
+      background:
+        rgba(255,255,255,.06);
+
+      color: inherit;
+
+      outline: none;
+    }
+
+    .settings-input:focus {
+      border-color: rgba(75,192,255,.7);
+
+      box-shadow:
+        0 0 0 3px rgba(75,192,255,.08);
+    }
+
+    .settings-message {
+      min-height: 20px;
+
+      margin: 0;
+
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* THEME */
+
+    .theme-options {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 10px;
+    }
+
+    .theme-option {
+      padding: 16px 10px;
+
+      border-radius: 14px;
+
+      border:
+        1px solid rgba(255,255,255,.12);
+
+      background:
+        rgba(255,255,255,.05);
+
+      color: inherit;
+
+      cursor: pointer;
+    }
+
+    .theme-option:hover {
+      background:
+        rgba(255,255,255,.09);
+    }
+
+    .theme-option.active {
+      border-color: #4bc0ff;
+
+      background:
+        rgba(75,192,255,.12);
+    }
+
+    /* RATING */
+
+    .rating-stars {
+      display: flex;
+      gap: 8px;
+    }
+
+    .rating-star {
+      padding: 0;
+
+      border: 0;
+      background: transparent;
+
+      color: #555;
+
+      cursor: pointer;
+
+      font-size: 32px;
+
+      transition: .15s ease;
+    }
+
+    .rating-star:hover {
+      transform: scale(1.12);
+    }
+
+    .rating-star.active {
+      color: #ffd166;
+    }
+
+    /* =====================================================
+       MOBILE
+    ===================================================== */
+
+    @media (max-width: 650px) {
 
       .profile-dropdown {
-        position: absolute;
-        top: calc(100% + 10px);
-        right: 0;
-        width: 310px;
-        z-index: 1000;
-        padding: 12px;
-        border-radius: 18px;
-        background: rgba(8, 18, 32, 0.98);
-        border: 1px solid rgba(255, 255, 255, 0.13);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(20px);
-        display: none;
-      }
+        width:
+          min(
+            320px,
+            calc(100vw - 28px)
+          );
 
-      .profile-dropdown.open {
-        display: block;
-      }
-
-      .profile-dropdown-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px;
-        margin-bottom: 8px;
-      }
-
-      .profile-dropdown-avatar {
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        font-size: 24px;
-        flex-shrink: 0;
-      }
-
-      .profile-dropdown-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .profile-dropdown-name {
-        font-weight: 700;
-        font-size: 16px;
-      }
-
-      .profile-dropdown-email {
-        opacity: 0.65;
-        font-size: 12px;
-        margin-top: 3px;
-        word-break: break-word;
-      }
-
-      .profile-menu-item {
-        width: 100%;
-        border: 0;
-        background: transparent;
-        color: inherit;
-        padding: 12px;
-        border-radius: 11px;
-        text-align: left;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 14px;
-      }
-
-      .profile-menu-item:hover {
-        background: rgba(255, 255, 255, 0.08);
-      }
-
-      .profile-menu-item span:first-child {
-        width: 25px;
-        text-align: center;
-        font-size: 17px;
-      }
-
-      /* ================= SETTINGS MODAL ================= */
-
-      .settings-modal {
-        position: fixed;
-        inset: 0;
-        z-index: 2000;
-        background: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(8px);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-      }
-
-      .settings-modal.open {
-        display: flex;
+        right: -8px;
       }
 
       .settings-card {
-        width: min(760px, 100%);
-        max-height: 90vh;
-        overflow-y: auto;
-        background: #0b1728;
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 22px;
-        padding: 24px;
-        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.55);
-      }
-
-      .settings-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 15px;
-        margin-bottom: 20px;
-      }
-
-      .settings-header h2 {
-        margin: 0;
-      }
-
-      .settings-close {
-        border: 0;
-        background: rgba(255, 255, 255, 0.08);
-        color: inherit;
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 20px;
-      }
-
-      .settings-section {
-        padding: 18px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-      }
-
-      .settings-section:last-child {
-        border-bottom: 0;
-      }
-
-      .settings-section h3 {
-        margin: 0 0 6px;
-      }
-
-      .settings-section p {
-        opacity: 0.7;
-        font-size: 13px;
+        padding: 18px;
+        max-height: 94vh;
       }
 
       .profile-info-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .profile-info-box {
-        padding: 14px;
-        border-radius: 13px;
-        background: rgba(255, 255, 255, 0.05);
-      }
-
-      .profile-info-box span {
-        display: block;
-        font-size: 12px;
-        opacity: 0.6;
-        margin-bottom: 5px;
-      }
-
-      .profile-info-box strong {
-        display: block;
-        word-break: break-word;
-      }
-
-      .edit-profile-form {
-        display: grid;
-        gap: 13px;
-      }
-
-      .settings-input,
-      .settings-select {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 12px 13px;
-        border-radius: 11px;
-        border: 1px solid rgba(255, 255, 255, 0.13);
-        background: rgba(255, 255, 255, 0.06);
-        color: inherit;
-        outline: none;
-      }
-
-      .settings-input:focus,
-      .settings-select:focus {
-        border-color: rgba(255, 255, 255, 0.45);
-      }
-
-      .settings-label {
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 5px;
-        display: block;
+        grid-template-columns: 1fr;
       }
 
       .theme-options {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+        grid-template-columns: 1fr;
       }
+    }
+  </style>
+</head>
 
-      .theme-option {
-        padding: 15px 10px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(255, 255, 255, 0.05);
-        color: inherit;
-        border-radius: 13px;
-        cursor: pointer;
-      }
+<body>
 
-      .theme-option.active {
-        border-color: #fff;
-        background: rgba(255, 255, 255, 0.13);
-      }
+  <div class="app-shell">
 
-      .rating-stars {
-        display: flex;
-        gap: 7px;
-        margin: 12px 0;
-      }
+    <!-- ===================================================
+         HEADER
+    ==================================================== -->
 
-      .rating-star {
-        border: 0;
-        background: transparent;
-        color: #777;
-        cursor: pointer;
-        font-size: 30px;
-        padding: 0;
-      }
+    <header class="topbar">
 
-      .rating-star.active {
-        color: #ffd166;
-      }
+      <div class="brand">
 
-      .settings-message {
-        min-height: 20px;
-        font-size: 13px;
-        font-weight: 600;
-      }
-
-      @media (max-width: 600px) {
-        .password-actions button {
-          width: 100%;
-        }
-
-        .profile-dropdown {
-          right: -10px;
-          width: min(310px, calc(100vw - 30px));
-        }
-
-        .profile-info-grid,
-        .theme-options {
-          grid-template-columns: 1fr;
-        }
-
-        .settings-card {
-          padding: 18px;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="app-shell">
-
-      <!-- ================= HEADER ================= -->
-
-      <header class="topbar">
-
-        <div class="brand brand-with-logo">
-          <img
-            class="brand-logo-full"
-            src="rakshasutra-logo.png"
-            alt="RakshaSutra - Your Safety, Our Promise"
-          />
-
-          <div class="rakshasutra-footer">
-            MADE WITH ❤️
-            BY GOVIND VAISHNAV 🧿
-            IN INDIA 🇮🇳
-          </div>
+        <div class="brand-badge">
+          🛡️
         </div>
 
-        <div class="topbar-actions">
+        <div>
+          <h1>RakshaSutra</h1>
 
-          <a class="ghost-button" href="index.html">
-            Home
-          </a>
-
-          <a
-            class="ghost-button"
-            href="admin.html"
-          >
-            Admin Panel
-          </a>
-
-          <!-- PROFILE MENU -->
-
-          <div class="profile-menu-wrap">
-
-            <button
-              class="profile-button"
-              id="profileButton"
-              type="button"
-              aria-label="Open profile settings"
-              aria-expanded="false"
-            >
-              <span id="profileAvatarText">👤</span>
-            </button>
-
-            <div
-              class="profile-dropdown"
-              id="profileDropdown"
-            >
-
-              <div class="profile-dropdown-header">
-
-                <div
-                  class="profile-dropdown-avatar"
-                  id="profileDropdownAvatar"
-                >
-                  👤
-                </div>
-
-                <div>
-                  <div
-                    class="profile-dropdown-name"
-                    id="profileDropdownName"
-                  >
-                    User
-                  </div>
-
-                  <div
-                    class="profile-dropdown-email"
-                    id="profileDropdownEmail"
-                  >
-                    —
-                  </div>
-                </div>
-
-              </div>
-
-              <button
-                class="profile-menu-item"
-                id="profileInfoBtn"
-                type="button"
-              >
-                <span>👤</span>
-                <span>Profile Information</span>
-              </button>
-
-              <button
-                class="profile-menu-item"
-                id="editProfileBtn"
-                type="button"
-              >
-                <span>✏️</span>
-                <span>Edit Profile</span>
-              </button>
-
-              <button
-                class="profile-menu-item"
-                id="changePasswordMenuBtn"
-                type="button"
-              >
-                <span>🔐</span>
-                <span>Change Password</span>
-              </button>
-
-              <button
-                class="profile-menu-item"
-                id="themeMenuBtn"
-                type="button"
-              >
-                <span>🎨</span>
-                <span>Theme</span>
-              </button>
-
-              <button
-                class="profile-menu-item"
-                id="rateAppBtn"
-                type="button"
-              >
-                <span>⭐</span>
-                <span>Rate RakshaSutra</span>
-              </button>
-
-              <button
-                class="profile-menu-item"
-                id="logoutBtn"
-                type="button"
-              >
-                <span>🚪</span>
-                <span>Log out</span>
-              </button>
-
-            </div>
-
-          </div>
-
+          <p>
+            Your Safety, Our Promise
+          </p>
         </div>
-
-      </header>
-
-
-      <main>
-
-        <!-- ================= DASHBOARD ================= -->
-
-        <section
-          class="dashboard-grid"
-          id="dashboardView"
-        >
-
-          <!-- ================= SOS CARD ================= -->
-
-          <div
-            class="card status-card"
-            id="sos"
-          >
-
-            <div class="card-head">
-
-              <h3>Emergency Controls</h3>
-
-              <span
-                class="pill subtle"
-                id="userBadge"
-              >
-                Protected
-              </span>
-
-            </div>
-
-            <div class="control-buttons">
-
-              <button
-                class="primary-btn"
-                id="sosBtn"
-                type="button"
-              >
-                🚨 One-Tap SOS
-              </button>
-
-              <button
-                class="secondary-btn"
-                id="voiceBtn"
-                type="button"
-              >
-                🎙️ Voice SOS
-              </button>
-
-              <button
-                class="secondary-btn"
-                id="callBtn"
-                type="button"
-              >
-                📞 Fake Call
-              </button>
-
-              <button
-                class="secondary-btn"
-                id="shareBtn"
-                type="button"
-              >
-                📍 Share Location
-              </button>
-
-            </div>
-
-            <div class="status-summary">
-
-              <div class="status-pill">
-                <span>Risk score</span>
-                <strong id="riskScore">24</strong>
-              </div>
-
-              <div class="status-pill">
-
-                <span>Location</span>
-
-                <strong id="locationText">
-                  Waiting for GPS
-                </strong>
-
-                <small id="coordsText">
-                  Location permission required
-                </small>
-
-              </div>
-
-            </div>
-
-            <div
-              class="status-note"
-              id="statusNote"
-            >
-              Your emergency controls are ready.
-            </div>
-
-          </div>
-
-
-          <!-- ================= SOS LIVE PANEL ================= -->
-
-          <div
-            class="sos-live-panel"
-            id="sosLivePanel"
-          >
-
-            <div
-              class="sos-state"
-              id="sosState"
-            >
-              🟢 SOS STANDBY
-            </div>
-
-            <div
-              class="sos-timer"
-              id="sosTimer"
-            >
-              Safety confirmation will appear after SOS starts.
-            </div>
-
-            <button
-              class="safe-now-btn"
-              id="safeNowBtn"
-              type="button"
-              disabled
-            >
-              🟢 ARE YOU SAFE NOW?
-            </button>
-
-          </div>
-
-
-          <!-- ================= EMERGENCY NUMBERS ================= -->
-
-          <div class="card route-card">
-
-            <div class="card-head">
-
-              <h3>Emergency Numbers</h3>
-
-              <span class="pill active">
-                India
-              </span>
-
-            </div>
-
-            <div class="emergency-list">
-
-              <a
-                class="secondary-btn full"
-                href="tel:112"
-              >
-                🚨 112 — Integrated Emergency
-              </a>
-
-              <a
-                class="secondary-btn full"
-                href="tel:100"
-              >
-                👮 100 — Police
-              </a>
-
-              <a
-                class="secondary-btn full"
-                href="tel:101"
-              >
-                🔥 101 — Fire Brigade
-              </a>
-
-              <a
-                class="secondary-btn full"
-                href="tel:108"
-              >
-                🚑 108 — Ambulance
-              </a>
-
-              <a
-                class="secondary-btn full"
-                href="tel:1091"
-              >
-                👩 1091 — Women Police Helpline
-              </a>
-
-              <a
-                class="secondary-btn full"
-                href="tel:181"
-              >
-                🛡️ 181 — Women Helpline
-              </a>
-
-              <a
-                class="secondary-btn full"
-                href="tel:1098"
-              >
-                🧒 1098 — Child Helpline
-              </a>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- ================= GUARDIAN PANEL ================= -->
-
-        <section class="card guardian-card">
-
-          <div class="card-head">
-
-            <h3>Guardian Panel</h3>
-
-            <span class="pill active">
-              Protected Circle
-            </span>
-
-          </div>
-
-          <div class="guardian-grid">
-
-            <div class="guardian-item">
-
-              <span>Guardian</span>
-
-              <strong id="guardianNameDisplay">
-                —
-              </strong>
-
-              <p id="guardianPhoneDisplay">
-                —
-              </p>
-
-              <button
-                class="secondary-btn small"
-                id="guardianSmsBtn"
-                type="button"
-              >
-                💬 Send SOS SMS
-              </button>
-
-            </div>
-
-
-            <div class="guardian-item">
-
-              <span>Trusted Contact</span>
-
-              <strong id="trustedNameDisplay">
-                —
-              </strong>
-
-              <p id="trustedPhoneDisplay">
-                —
-              </p>
-
-              <button
-                class="secondary-btn small"
-                id="trustedSmsBtn"
-                type="button"
-              >
-                💬 Send SOS SMS
-              </button>
-
-            </div>
-
-
-            <div class="guardian-item">
-
-              <span>Safe Address</span>
-
-              <strong id="trustedAddressDisplay">
-                —
-              </strong>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- ================= ACCOUNT SECURITY ================= -->
-
-        <section
-          class="card security-card"
-          id="securitySection"
-        >
-
-          <div class="card-head">
-
-            <div>
-
-              <h3>🔐 Account Security</h3>
-
-              <p class="password-help">
-                Change your RakshaSutra account password.
-                Your emergency profile and contacts will remain unchanged.
-              </p>
-
-            </div>
-
-            <span class="pill active">
-              Secure
-            </span>
-
-          </div>
-
-
-          <form
-            class="password-form"
-            id="changePasswordForm"
-          >
-
-            <div class="password-field">
-
-              <label for="currentPassword">
-                Current Password
-              </label>
-
-              <div class="password-input-wrap">
-
-                <input
-                  id="currentPassword"
-                  type="password"
-                  autocomplete="current-password"
-                  placeholder="Enter your current password"
-                  required
-                />
-
-                <button
-                  class="password-toggle"
-                  type="button"
-                  data-password-toggle="currentPassword"
-                  aria-label="Show current password"
-                >
-                  👁️
-                </button>
-
-              </div>
-
-            </div>
-
-
-            <div class="password-field">
-
-              <label for="newPassword">
-                New Password
-              </label>
-
-              <div class="password-input-wrap">
-
-                <input
-                  id="newPassword"
-                  type="password"
-                  autocomplete="new-password"
-                  placeholder="Enter your new password"
-                  minlength="6"
-                  required
-                />
-
-                <button
-                  class="password-toggle"
-                  type="button"
-                  data-password-toggle="newPassword"
-                  aria-label="Show new password"
-                >
-                  👁️
-                </button>
-
-              </div>
-
-            </div>
-
-
-            <div class="password-field">
-
-              <label for="confirmNewPassword">
-                Confirm New Password
-              </label>
-
-              <div class="password-input-wrap">
-
-                <input
-                  id="confirmNewPassword"
-                  type="password"
-                  autocomplete="new-password"
-                  placeholder="Confirm your new password"
-                  minlength="6"
-                  required
-                />
-
-                <button
-                  class="password-toggle"
-                  type="button"
-                  data-password-toggle="confirmNewPassword"
-                  aria-label="Show confirmed password"
-                >
-                  👁️
-                </button>
-
-              </div>
-
-            </div>
-
-
-            <p
-              class="password-message"
-              id="changePasswordMessage"
-              aria-live="polite"
-            ></p>
-
-
-            <div class="password-actions">
-
-              <button
-                class="primary-btn"
-                type="submit"
-              >
-                🔑 Change Password
-              </button>
-
-              <button
-                class="secondary-btn"
-                id="clearPasswordFormBtn"
-                type="button"
-              >
-                Clear
-              </button>
-
-            </div>
-
-          </form>
-
-        </section>
-
-
-        <!-- ================= FEATURES ================= -->
-
-        <section
-          class="features-grid"
-          id="features"
-        >
-
-          <article class="card feature-card">
-
-            <h3>One-Tap & Voice SOS</h3>
-
-            <p>
-              Activate emergency mode quickly and access
-              police, ambulance, fire and other emergency
-              services.
-            </p>
-
-          </article>
-
-
-          <article class="card feature-card">
-
-            <h3>Live Location Sharing</h3>
-
-            <p>
-              Get your current GPS position and prepare
-              a location message for your trusted contacts.
-            </p>
-
-          </article>
-
-
-          <article class="card feature-card">
-
-            <h3>AI Risk Detection</h3>
-
-            <p>
-              Adaptive safety checks can help identify
-              potentially unsafe situations.
-            </p>
-
-          </article>
-
-
-          <article class="card feature-card">
-
-            <h3>Fake Incoming Calls</h3>
-
-            <p>
-              Receive a simulated incoming call inside
-              RakshaSutra without opening the real dialer.
-            </p>
-
-          </article>
-
-        </section>
-
-
-        <!-- ================= ACTIVITY ================= -->
-
-        <section class="card activity-card">
-
-          <div class="card-head">
-
-            <h3>
-              Guardian Activity
-            </h3>
-
-            <button
-              class="ghost-button small"
-              id="scanBtn"
-              type="button"
-            >
-              Run AI Scan
-            </button>
-
-          </div>
-
-          <ul id="activityList">
-
-            <li>
-              Emergency mode is ready.
-            </li>
-
-            <li>
-              Trusted contacts are available.
-            </li>
-
-          </ul>
-
-        </section>
-
-      </main>
-
-    </div>
-
-
-    <!-- ================= SETTINGS MODAL ================= -->
-
-    <div
-      class="settings-modal"
-      id="settingsModal"
-      aria-hidden="true"
-    >
-
-      <div class="settings-card">
-
-        <div class="settings-header">
-
-          <h2 id="settingsTitle">
-            ⚙️ Profile & Settings
-          </h2>
-
-          <button
-            class="settings-close"
-            id="closeSettingsBtn"
-            type="button"
-            aria-label="Close settings"
-          >
-            ✕
-          </button>
-
-        </div>
-
-
-        <!-- PROFILE INFORMATION -->
-
-        <section
-          class="settings-section"
-          id="profileInfoSection"
-        >
-
-          <h3>👤 Profile Information</h3>
-
-          <p>
-            Your RakshaSutra account information.
-          </p>
-
-          <div class="profile-info-grid">
-
-            <div class="profile-info-box">
-              <span>Name</span>
-              <strong id="settingsProfileName">—</strong>
-            </div>
-
-            <div class="profile-info-box">
-              <span>Email</span>
-              <strong id="settingsProfileEmail">—</strong>
-            </div>
-
-            <div class="profile-info-box">
-              <span>Phone</span>
-              <strong id="settingsProfilePhone">—</strong>
-            </div>
-
-            <div class="profile-info-box">
-              <span>Guardian</span>
-              <strong id="settingsGuardianName">—</strong>
-            </div>
-
-            <div class="profile-info-box">
-              <span>Trusted Contact</span>
-              <strong id="settingsTrustedName">—</strong>
-            </div>
-
-            <div class="profile-info-box">
-              <span>Safe Address</span>
-              <strong id="settingsSafeAddress">—</strong>
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- EDIT PROFILE -->
-
-        <section
-          class="settings-section"
-          id="editProfileSection"
-        >
-
-          <h3>✏️ Edit Profile</h3>
-
-          <p>
-            Update your personal and emergency information.
-          </p>
-
-          <form
-            class="edit-profile-form"
-            id="editProfileForm"
-          >
-
-            <div>
-              <label
-                class="settings-label"
-                for="editName"
-              >
-                Full Name
-              </label>
-
-              <input
-                class="settings-input"
-                id="editName"
-                type="text"
-                placeholder="Full name"
-              />
-            </div>
-
-
-            <div>
-              <label
-                class="settings-label"
-                for="editEmail"
-              >
-                Email
-              </label>
-
-              <input
-                class="settings-input"
-                id="editEmail"
-                type="email"
-                placeholder="Email address"
-              />
-            </div>
-
-
-            <div>
-              <label
-                class="settings-label"
-                for="editPhone"
-              >
-                Phone
-              </label>
-
-              <input
-                class="settings-input"
-                id="editPhone"
-                type="tel"
-                placeholder="Phone number"
-              />
-            </div>
-
-
-            <div>
-              <label
-                class="settings-label"
-                for="editGuardianName"
-              >
-                Guardian Name
-              </label>
-
-              <input
-                class="settings-input"
-                id="editGuardianName"
-                type="text"
-                placeholder="Guardian name"
-              />
-            </div>
-
-
-            <div>
-              <label
-                class="settings-label"
-                for="editGuardianPhone"
-              >
-                Guardian Phone
-              </label>
-
-              <input
-                class="settings-input"
-                id="editGuardianPhone"
-                type="tel"
-                placeholder="Guardian phone"
-              />
-            </div>
-
-
-            <div>
-              <label
-                class="settings-label"
-                for="editTrustedName"
-              >
-                Trusted Contact Name
-              </label>
-
-              <input
-                class="settings-input"
-                id="editTrustedName"
-                type="text"
-                placeholder="Trusted contact name"
-              />
-            </div>
-
-
-            <div>
-              <label
-                class="settings-label"
-                for="editTrustedPhone"
-              >
-                Trusted Contact Phone
-              </label>
-
-              <input
-                class="settings-input"
-                id="editTrustedPhone"
-                type="tel"
-                placeholder="Trusted contact phone"
-              />
-            </div>
-
-
-            <div>
-              <label
-                class="settings-label"
-                for="editSafeAddress"
-              >
-                Safe Address
-              </label>
-
-              <input
-                class="settings-input"
-                id="editSafeAddress"
-                type="text"
-                placeholder="Safe address"
-              />
-            </div>
-
-
-            <p
-              class="settings-message"
-              id="editProfileMessage"
-            ></p>
-
-
-            <button
-              class="primary-btn"
-              type="submit"
-            >
-              💾 Save Profile
-            </button>
-
-          </form>
-
-        </section>
-
-
-        <!-- THEME -->
-
-        <section
-          class="settings-section"
-          id="themeSection"
-        >
-
-          <h3>🎨 Theme</h3>
-
-          <p>
-            Choose how RakshaSutra should look.
-          </p>
-
-          <div class="theme-options">
-
-            <button
-              class="theme-option"
-              type="button"
-              data-theme="dark"
-            >
-              🌙
-              <br />
-              Dark
-            </button>
-
-            <button
-              class="theme-option"
-              type="button"
-              data-theme="light"
-            >
-              ☀️
-              <br />
-              Light
-            </button>
-
-            <button
-              class="theme-option"
-              type="button"
-              data-theme="system"
-            >
-              💻
-              <br />
-              System
-            </button>
-
-          </div>
-
-        </section>
-
-
-        <!-- RATE -->
-
-        <section
-          class="settings-section"
-          id="ratingSection"
-        >
-
-          <h3>⭐ Rate RakshaSutra</h3>
-
-          <p>
-            How would you rate your RakshaSutra experience?
-          </p>
-
-          <div
-            class="rating-stars"
-            id="ratingStars"
-          >
-
-            <button
-              class="rating-star"
-              type="button"
-              data-rating="1"
-            >
-              ★
-            </button>
-
-            <button
-              class="rating-star"
-              type="button"
-              data-rating="2"
-            >
-              ★
-            </button>
-
-            <button
-              class="rating-star"
-              type="button"
-              data-rating="3"
-            >
-              ★
-            </button>
-
-            <button
-              class="rating-star"
-              type="button"
-              data-rating="4"
-            >
-              ★
-            </button>
-
-            <button
-              class="rating-star"
-              type="button"
-              data-rating="5"
-            >
-              ★
-            </button>
-
-          </div>
-
-          <p
-            class="settings-message"
-            id="ratingMessage"
-          ></p>
-
-        </section>
-
-
-        <!-- CHANGE PASSWORD -->
-
-        <section
-          class="settings-section"
-          id="settingsPasswordSection"
-        >
-
-          <h3>🔐 Change Password</h3>
-
-          <p>
-            Update your account password.
-          </p>
-
-          <button
-            class="primary-btn"
-            id="openPasswordSectionBtn"
-            type="button"
-          >
-            🔑 Change Password
-          </button>
-
-        </section>
 
       </div>
 
-    </div>
+
+      <div class="topbar-actions">
+
+        <a
+          class="ghost-button"
+          href="index.html"
+        >
+          Home
+        </a>
+
+        <a
+          class="ghost-button"
+          href="admin.html"
+        >
+          Admin
+        </a>
 
 
-    <!-- ================= EMERGENCY CENTER ================= -->
+        <!-- PROFILE -->
 
-    <div
-      class="modal hidden"
-      id="emergencyModal"
-      aria-hidden="true"
-    >
+        <div class="profile-menu-wrap">
 
-      <div class="modal-card">
+          <button
+            class="profile-button"
+            id="profileButton"
+            type="button"
+            aria-label="Profile"
+            aria-expanded="false"
+          >
+
+            <span id="profileAvatarText">
+              👤
+            </span>
+
+          </button>
+
+
+          <!-- PROFILE DROPDOWN -->
+
+          <div
+            class="profile-dropdown"
+            id="profileDropdown"
+          >
+
+            <div class="profile-dropdown-header">
+
+              <div
+                class="profile-dropdown-avatar"
+                id="profileDropdownAvatar"
+              >
+                👤
+              </div>
+
+              <div>
+
+                <div
+                  class="profile-dropdown-name"
+                  id="profileDropdownName"
+                >
+                  User
+                </div>
+
+                <div
+                  class="profile-dropdown-email"
+                  id="profileDropdownEmail"
+                >
+                  —
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <button
+              class="profile-menu-item"
+              id="profileInfoBtn"
+              type="button"
+            >
+              <span>👤</span>
+              <span>Profile Information</span>
+            </button>
+
+
+            <button
+              class="profile-menu-item"
+              id="editProfileBtn"
+              type="button"
+            >
+              <span>✏️</span>
+              <span>Edit Profile</span>
+            </button>
+
+
+            <button
+              class="profile-menu-item"
+              id="changePasswordMenuBtn"
+              type="button"
+            >
+              <span>🔐</span>
+              <span>Change Password</span>
+            </button>
+
+
+            <button
+              class="profile-menu-item"
+              id="themeMenuBtn"
+              type="button"
+            >
+              <span>🎨</span>
+              <span>Change Theme</span>
+            </button>
+
+
+            <button
+              class="profile-menu-item"
+              id="rateAppBtn"
+              type="button"
+            >
+              <span>⭐</span>
+              <span>Rate RakshaSutra</span>
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <!-- ===================================================
+         HERO
+    ==================================================== -->
+
+    <section class="hero">
+
+      <div class="hero-copy">
+
+        <div class="eyebrow">
+          PERSONAL SAFETY DASHBOARD
+        </div>
+
+        <h2>
+          Stay connected.
+          Stay protected.
+        </h2>
+
+        <p>
+          RakshaSutra gives you quick access to
+          emergency assistance, trusted contacts,
+          your live location and safety tools.
+        </p>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="panel-head">
+
+          <strong>
+            Safety Status
+          </strong>
+
+          <span
+            class="pill active"
+            id="safetyStatusPill"
+          >
+            Ready
+          </span>
+
+        </div>
+
+        <div class="stat-block">
+
+          <h3 id="safetyScore">
+            100
+          </h3>
+
+          <small>
+            Safety Score
+          </small>
+
+        </div>
+
+        <div class="location-card">
+
+          <h4>
+            📍 Current Location
+          </h4>
+
+          <p id="locationStatus">
+            Location not requested
+          </p>
+
+          <p id="locationCoords">
+            —
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         TRUSTED CONTACTS
+    ==================================================== -->
+
+    <section class="card guardian-card">
+
+      <div class="card-head">
+
+        <div>
+
+          <h3>
+            🛡️ Trusted Contacts
+          </h3>
+
+          <p class="form-hint">
+            These contacts can be used during an SOS.
+          </p>
+
+        </div>
+
+        <span
+          class="pill"
+          id="contactStatus"
+        >
+          Ready
+        </span>
+
+      </div>
+
+
+      <div class="guardian-grid">
+
+        <div class="guardian-item">
+
+          <span>
+            Guardian
+          </span>
+
+          <strong id="guardianName">
+            Not added
+          </strong>
+
+          <p id="guardianPhone">
+            —
+          </p>
+
+        </div>
+
+
+        <div class="guardian-item">
+
+          <span>
+            Trusted Person
+          </span>
+
+          <strong id="trustedName">
+            Not added
+          </strong>
+
+          <p id="trustedPhone">
+            —
+          </p>
+
+        </div>
+
+
+        <div class="guardian-item">
+
+          <span>
+            Safe Address
+          </span>
+
+          <strong id="safeAddress">
+            Not added
+          </strong>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         MAIN DASHBOARD
+    ==================================================== -->
+
+    <section class="dashboard-grid">
+
+      <!-- SOS -->
+
+      <div class="card">
 
         <div class="card-head">
 
-          <h3>
+          <div>
+
+            <h3>
+              🚨 Emergency SOS
+            </h3>
+
+            <p class="form-hint">
+              Use only when you need immediate help.
+            </p>
+
+          </div>
+
+          <span
+            class="pill"
+            id="sosStatus"
+          >
+            Standby
+          </span>
+
+        </div>
+
+
+        <button
+          class="primary-btn full"
+          id="sosBtn"
+          type="button"
+        >
+          🚨 ACTIVATE SOS
+        </button>
+
+
+        <div class="status-summary">
+
+          <div class="status-pill">
+
+            <span>
+              Location
+            </span>
+
+            <strong id="locationReady">
+              Not ready
+            </strong>
+
+          </div>
+
+
+          <div class="status-pill">
+
+            <span>
+              Contacts
+            </span>
+
+            <strong id="contactsReady">
+              Not ready
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- SAFETY TOOLS -->
+
+      <div class="card">
+
+        <div class="card-head">
+
+          <div>
+
+            <h3>
+              🧰 Safety Tools
+            </h3>
+
+            <p class="form-hint">
+              Quick-access safety features.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="control-buttons">
+
+          <button
+            class="secondary-btn"
+            id="locationBtn"
+            type="button"
+          >
+            📍 Get Location
+          </button>
+
+
+          <button
+            class="secondary-btn"
+            id="fakeCallBtn"
+            type="button"
+          >
+            📞 Fake Call
+          </button>
+
+
+          <button
+            class="secondary-btn"
+            id="scanBtn"
+            type="button"
+          >
+            🔎 Safety Scan
+          </button>
+
+
+          <button
+            class="secondary-btn"
+            id="emergencyCenterBtn"
+            type="button"
+          >
             🚨 Emergency Center
-          </h3>
-
-          <button
-            class="ghost-button small"
-            id="closeEmergencyBtn"
-            type="button"
-          >
-            Close
-          </button>
-
-        </div>
-
-
-        <div class="status-note">
-
-          <strong>SOS Mode Active</strong>
-
-          <p id="emergencySummary">
-            Your emergency controls are ready.
-          </p>
-
-        </div>
-
-
-        <h4>
-          Emergency Services
-        </h4>
-
-        <div class="emergency-list">
-
-          <a
-            class="primary-btn full"
-            href="tel:112"
-          >
-            🚨 Call 112 — Emergency
-          </a>
-
-          <a
-            class="secondary-btn full"
-            href="tel:100"
-          >
-            👮 Call 100 — Police
-          </a>
-
-          <a
-            class="secondary-btn full"
-            href="tel:101"
-          >
-            🔥 Call 101 — Fire Brigade
-          </a>
-
-          <a
-            class="secondary-btn full"
-            href="tel:108"
-          >
-            🚑 Call 108 — Ambulance
-          </a>
-
-          <a
-            class="secondary-btn full"
-            href="tel:1091"
-          >
-            👩 Call 1091 — Women Police
-          </a>
-
-          <a
-            class="secondary-btn full"
-            href="tel:181"
-          >
-            🛡️ Call 181 — Women Helpline
-          </a>
-
-        </div>
-
-
-        <h4>
-          Trusted Contacts
-        </h4>
-
-        <div class="emergency-list">
-
-          <button
-            class="secondary-btn full"
-            id="guardianEmergencySmsBtn"
-            type="button"
-          >
-            💬 Send SOS to Guardian
-          </button>
-
-          <button
-            class="secondary-btn full"
-            id="trustedEmergencySmsBtn"
-            type="button"
-          >
-            💬 Send SOS to Trusted Contact
           </button>
 
         </div>
 
       </div>
 
-    </div>
+    </section>
 
 
-    <!-- ================= FAKE CALL MODAL ================= -->
+    <!-- ===================================================
+         LOCATION
+    ==================================================== -->
 
-    <div
-      class="modal hidden"
-      id="callModal"
-      aria-hidden="true"
-    >
+    <section class="card">
 
-      <div class="modal-card fake-call-card">
+      <div class="card-head">
 
-        <div id="incomingCallScreen">
+        <div>
 
-          <p class="call-label">
-            Incoming call
-          </p>
-
-          <div class="call-avatar">
-            🛡️
-          </div>
-
-          <h3 id="callName">
-            Guardian
+          <h3>
+            📍 Location & Safe Route
           </h3>
 
-          <p id="callStatus">
-            Ringing…
+          <p class="form-hint">
+            Your browser location is used locally
+            for the prototype.
           </p>
 
+        </div>
 
-          <div class="call-actions">
+        <button
+          class="secondary-btn"
+          id="shareLocationBtn"
+          type="button"
+        >
+          📤 Share Location
+        </button>
 
-            <button
-              class="secondary-btn"
-              id="declineCallBtn"
-              type="button"
-            >
-              Decline
-            </button>
+      </div>
 
-            <button
-              class="primary-btn"
-              id="answerCallBtn"
-              type="button"
-            >
-              Answer
-            </button>
+
+      <div class="route-map">
+
+        <div class="route-line"></div>
+
+        <div class="map-node home">
+          📍 You
+        </div>
+
+        <div class="map-node work">
+          🏠 Safe Place
+        </div>
+
+        <div class="map-node safe">
+          🛡️
+        </div>
+
+      </div>
+
+
+      <ol class="route-points">
+
+        <li>
+          Request your current location.
+        </li>
+
+        <li>
+          Review your saved safe destination.
+        </li>
+
+        <li>
+          Share your location when needed.
+        </li>
+
+      </ol>
+
+    </section>
+
+
+    <!-- ===================================================
+         SAFETY FEATURES
+    ==================================================== -->
+
+    <section class="features-grid">
+
+      <div class="card feature-card">
+
+        <h3>
+          ⚡ One-Tap SOS
+        </h3>
+
+        <p>
+          Start the emergency workflow quickly.
+        </p>
+
+      </div>
+
+
+      <div class="card feature-card">
+
+        <h3>
+          🎙️ Voice Safety
+        </h3>
+
+        <p>
+          Keep your safety workflow simple and accessible.
+        </p>
+
+      </div>
+
+
+      <div class="card feature-card">
+
+        <h3>
+          🤖 AI Safety Scan
+        </h3>
+
+        <p>
+          Review basic safety signals in the prototype.
+        </p>
+
+      </div>
+
+
+      <div class="card feature-card">
+
+        <h3>
+          📞 Fake Incoming Call
+        </h3>
+
+        <p>
+          Simulate an incoming call when you need an exit.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         ACTIVITY
+    ==================================================== -->
+
+    <section class="card activity-card">
+
+      <div class="card-head">
+
+        <div>
+
+          <h3>
+            📋 Recent Activity
+          </h3>
+
+          <p class="form-hint">
+            Your recent safety actions.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <ul id="activityList">
+
+        <li>
+          RakshaSutra dashboard ready.
+        </li>
+
+      </ul>
+
+    </section>
+
+
+    <!-- ===================================================
+         LOGOUT
+    ==================================================== -->
+
+    <section class="card">
+
+      <button
+        class="secondary-btn"
+        id="logoutBtn"
+        type="button"
+      >
+        🚪 Logout
+      </button>
+
+    </section>
+
+  </div>
+
+
+  <!-- =====================================================
+       SETTINGS MODAL
+  ====================================================== -->
+
+  <div
+    class="settings-modal"
+    id="settingsModal"
+    aria-hidden="true"
+  >
+
+    <div class="settings-card">
+
+      <div class="settings-header">
+
+        <div>
+
+          <h2>
+            ⚙️ Account Settings
+          </h2>
+
+          <p>
+            Manage your RakshaSutra profile and preferences.
+          </p>
+
+        </div>
+
+        <button
+          class="settings-close"
+          id="closeSettingsBtn"
+          type="button"
+          aria-label="Close settings"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <!-- PROFILE INFORMATION -->
+
+      <section
+        class="settings-section"
+        id="profileInfoSection"
+      >
+
+        <h3>
+          👤 Profile Information
+        </h3>
+
+        <p>
+          Your current account information.
+        </p>
+
+
+        <div class="profile-info-grid">
+
+          <div class="profile-info-box">
+
+            <span>
+              Full Name
+            </span>
+
+            <strong id="settingsProfileName">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="profile-info-box">
+
+            <span>
+              Email
+            </span>
+
+            <strong id="settingsProfileEmail">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="profile-info-box">
+
+            <span>
+              Phone
+            </span>
+
+            <strong id="settingsProfilePhone">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="profile-info-box">
+
+            <span>
+              Guardian
+            </span>
+
+            <strong id="settingsGuardianName">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="profile-info-box">
+
+            <span>
+              Trusted Person
+            </span>
+
+            <strong id="settingsTrustedName">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="profile-info-box">
+
+            <span>
+              Safe Address
+            </span>
+
+            <strong id="settingsSafeAddress">
+              —
+            </strong>
 
           </div>
 
         </div>
+
+      </section>
+
+
+      <!-- EDIT PROFILE -->
+
+      <section
+        class="settings-section"
+        id="editProfileSection"
+      >
+
+        <h3>
+          ✏️ Edit Profile
+        </h3>
+
+        <p>
+          Update your personal and trusted-contact information.
+        </p>
+
+
+        <form
+          class="edit-profile-form"
+          id="editProfileForm"
+        >
+
+          <div>
+
+            <label
+              class="settings-label"
+              for="editName"
+            >
+              Full Name
+            </label>
+
+            <input
+              class="settings-input"
+              id="editName"
+              type="text"
+              placeholder="Enter your full name"
+            />
+
+          </div>
+
+
+          <div>
+
+            <label
+              class="settings-label"
+              for="editEmail"
+            >
+              Email
+            </label>
+
+            <input
+              class="settings-input"
+              id="editEmail"
+              type="email"
+              placeholder="Enter your email"
+            />
+
+          </div>
+
+
+          <div>
+
+            <label
+              class="settings-label"
+              for="editPhone"
+            >
+              Phone
+            </label>
+
+            <input
+              class="settings-input"
+              id="editPhone"
+              type="tel"
+              placeholder="Enter your phone number"
+            />
+
+          </div>
+
+
+          <div>
+
+            <label
+              class="settings-label"
+              for="editGuardianName"
+            >
+              Guardian Name
+            </label>
+
+            <input
+              class="settings-input"
+              id="editGuardianName"
+              type="text"
+              placeholder="Guardian name"
+            />
+
+          </div>
+
+
+          <div>
+
+            <label
+              class="settings-label"
+              for="editGuardianPhone"
+            >
+              Guardian Phone
+            </label>
+
+            <input
+              class="settings-input"
+              id="editGuardianPhone"
+              type="tel"
+              placeholder="Guardian phone"
+            />
+
+          </div>
+
+
+          <div>
+
+            <label
+              class="settings-label"
+              for="editTrustedName"
+            >
+              Trusted Person Name
+            </label>
+
+            <input
+              class="settings-input"
+              id="editTrustedName"
+              type="text"
+              placeholder="Trusted person name"
+            />
+
+          </div>
+
+
+          <div>
+
+            <label
+              class="settings-label"
+              for="editTrustedPhone"
+            >
+              Trusted Person Phone
+            </label>
+
+            <input
+              class="settings-input"
+              id="editTrustedPhone"
+              type="tel"
+              placeholder="Trusted person phone"
+            />
+
+          </div>
+
+
+          <div>
+
+            <label
+              class="settings-label"
+              for="editSafeAddress"
+            >
+              Safe Address
+            </label>
+
+            <input
+              class="settings-input"
+              id="editSafeAddress"
+              type="text"
+              placeholder="Safe address"
+            />
+
+          </div>
+
+
+          <p
+            class="settings-message"
+            id="editProfileMessage"
+          ></p>
+
+
+          <button
+            class="primary-btn"
+            type="submit"
+          >
+            💾 Save Profile
+          </button>
+
+        </form>
+
+      </section>
+
+
+      <!-- THEME -->
+
+      <section
+        class="settings-section"
+        id="themeSection"
+      >
+
+        <h3>
+          🎨 Theme
+        </h3>
+
+        <p>
+          Choose your preferred appearance.
+        </p>
+
+
+        <div class="theme-options">
+
+          <button
+            class="theme-option"
+            type="button"
+            data-theme="dark"
+          >
+            🌙
+            <br />
+            Dark
+          </button>
+
+
+          <button
+            class="theme-option"
+            type="button"
+            data-theme="light"
+          >
+            ☀️
+            <br />
+            Light
+          </button>
+
+
+          <button
+            class="theme-option"
+            type="button"
+            data-theme="system"
+          >
+            💻
+            <br />
+            System
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- RATING -->
+
+      <section
+        class="settings-section"
+        id="ratingSection"
+      >
+
+        <h3>
+          ⭐ Rate RakshaSutra
+        </h3>
+
+        <p>
+          Tell us how you feel about the app.
+        </p>
 
 
         <div
-          id="pickupScreen"
-          hidden
+          class="rating-stars"
+          id="ratingStars"
         >
 
-          <p class="call-label">
-            Call connected
-          </p>
-
-          <div class="call-avatar">
-            🛡️
-          </div>
-
-          <h3 id="pickupName">
-            RakshaSutra Safety Call
-          </h3>
-
-          <p id="pickupStatus">
-            This is a simulated safety call.
-            You can use it to leave an uncomfortable
-            situation and move somewhere safe.
-          </p>
+          <button
+            class="rating-star"
+            type="button"
+            data-rating="1"
+          >
+            ★
+          </button>
 
           <button
-            class="secondary-btn full"
-            id="endCallBtn"
+            class="rating-star"
+            type="button"
+            data-rating="2"
+          >
+            ★
+          </button>
+
+          <button
+            class="rating-star"
+            type="button"
+            data-rating="3"
+          >
+            ★
+          </button>
+
+          <button
+            class="rating-star"
+            type="button"
+            data-rating="4"
+          >
+            ★
+          </button>
+
+          <button
+            class="rating-star"
+            type="button"
+            data-rating="5"
+          >
+            ★
+          </button>
+
+        </div>
+
+
+        <p
+          class="settings-message"
+          id="ratingMessage"
+        ></p>
+
+      </section>
+
+
+      <!-- PASSWORD -->
+
+      <section
+        class="settings-section"
+        id="settingsPasswordSection"
+      >
+
+        <h3>
+          🔐 Change Password
+        </h3>
+
+        <p>
+          Update your account password.
+        </p>
+
+
+        <button
+          class="primary-btn"
+          id="openPasswordSectionBtn"
+          type="button"
+        >
+          🔑 Change Password
+        </button>
+
+      </section>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       EMERGENCY MODAL
+  ====================================================== -->
+
+  <div
+    class="modal hidden"
+    id="emergencyModal"
+    aria-hidden="true"
+  >
+
+    <div class="modal-card">
+
+      <div class="card-head">
+
+        <h3>
+          🚨 Emergency Center
+        </h3>
+
+        <button
+          class="ghost-button small"
+          id="closeEmergencyBtn"
+          type="button"
+        >
+          Close
+        </button>
+
+      </div>
+
+
+      <div class="status-note">
+
+        <strong>
+          SOS Mode Active
+        </strong>
+
+        <p id="emergencySummary">
+          Your emergency controls are ready.
+        </p>
+
+      </div>
+
+
+      <h4>
+        Emergency Services
+      </h4>
+
+
+      <div class="emergency-list">
+
+        <a
+          class="primary-btn full"
+          href="tel:112"
+        >
+          🚨 Call 112
+        </a>
+
+        <a
+          class="secondary-btn full"
+          href="tel:100"
+        >
+          👮 Call 100
+        </a>
+
+        <a
+          class="secondary-btn full"
+          href="tel:101"
+        >
+          🔥 Call 101
+        </a>
+
+        <a
+          class="secondary-btn full"
+          href="tel:108"
+        >
+          🚑 Call 108
+        </a>
+
+        <a
+          class="secondary-btn full"
+          href="tel:1091"
+        >
+          👩 Call 1091
+        </a>
+
+        <a
+          class="secondary-btn full"
+          href="tel:181"
+        >
+          🛡️ Call 181
+        </a>
+
+      </div>
+
+
+      <h4>
+        Trusted Contacts
+      </h4>
+
+
+      <div class="emergency-list">
+
+        <button
+          class="secondary-btn full"
+          id="guardianEmergencySmsBtn"
+          type="button"
+        >
+          💬 Send SOS to Guardian
+        </button>
+
+
+        <button
+          class="secondary-btn full"
+          id="trustedEmergencySmsBtn"
+          type="button"
+        >
+          💬 Send SOS to Trusted Person
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       FAKE CALL MODAL
+  ====================================================== -->
+
+  <div
+    class="modal hidden"
+    id="callModal"
+    aria-hidden="true"
+  >
+
+    <div class="modal-card">
+
+      <div id="incomingCallScreen">
+
+        <p class="call-label">
+          Incoming call
+        </p>
+
+        <div class="call-avatar">
+          🛡️
+        </div>
+
+        <h3 id="callName">
+          Guardian
+        </h3>
+
+        <p id="callStatus">
+          Ringing…
+        </p>
+
+
+        <div class="call-actions">
+
+          <button
+            class="secondary-btn"
+            id="declineCallBtn"
             type="button"
           >
-            End Fake Call
+            Decline
+          </button>
+
+
+          <button
+            class="primary-btn"
+            id="answerCallBtn"
+            type="button"
+          >
+            Answer
           </button>
 
         </div>
 
       </div>
 
+
+      <div
+        id="pickupScreen"
+        hidden
+      >
+
+        <p class="call-label">
+          Call connected
+        </p>
+
+        <div class="call-avatar">
+          🛡️
+        </div>
+
+        <h3 id="pickupName">
+          RakshaSutra Safety Call
+        </h3>
+
+        <p id="pickupStatus">
+          This is a simulated safety call.
+        </p>
+
+
+        <button
+          class="secondary-btn full"
+          id="endCallBtn"
+          type="button"
+        >
+          End Fake Call
+        </button>
+
+      </div>
+
     </div>
 
-
-    <!-- ================= TOAST ================= -->
-
-    <div
-      class="toast hidden"
-      id="toast"
-    ></div>
+  </div>
 
 
-    <!-- ================= JAVASCRIPT ================= -->
+  <!-- =====================================================
+       TOAST
+  ====================================================== -->
 
-    <script
-      type="module"
-      src="user.js"
-    ></script>
+  <div
+    class="toast hidden"
+    id="toast"
+  ></div>
 
-  </body>
+
+  <!-- =====================================================
+       JAVASCRIPT
+  ====================================================== -->
+
+  <script
+    type="module"
+    src="user.js"
+  ></script>
+
+</body>
 </html>
