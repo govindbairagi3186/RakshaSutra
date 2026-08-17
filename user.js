@@ -1,3 +1,4 @@
+```javascript
 /* =========================================================
    RAKSHASUTRA PROFILE + SETTINGS
    REPLACE THE PREVIOUS PROFILE/SETTINGS CODE WITH THIS
@@ -1101,3 +1102,4 @@
   );
 
 })();
+```
