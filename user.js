@@ -1,888 +1,1074 @@
-/* =====================================================
-   RAKSHASUTRA PROFILE & SETTINGS
-   ADD THIS CODE AT THE END OF user.js
-===================================================== */
+/* =========================================================
+   RAKSHASUTRA PROFILE + SETTINGS
+   REPLACE THE PREVIOUS PROFILE/SETTINGS CODE WITH THIS
+   ========================================================= */
 
-const profileEls = {
-  profileButton: document.getElementById('profileButton'),
-  profileDropdown: document.getElementById('profileDropdown'),
+(function () {
+  "use strict";
 
-  profileAvatarText: document.getElementById('profileAvatarText'),
-  profileDropdownAvatar: document.getElementById('profileDropdownAvatar'),
-  profileDropdownName: document.getElementById('profileDropdownName'),
-  profileDropdownEmail: document.getElementById('profileDropdownEmail'),
+  /* =======================================================
+     ELEMENTS
+     ======================================================= */
 
-  profileInfoBtn: document.getElementById('profileInfoBtn'),
-  editProfileBtn: document.getElementById('editProfileBtn'),
-  changePasswordMenuBtn: document.getElementById('changePasswordMenuBtn'),
-  themeMenuBtn: document.getElementById('themeMenuBtn'),
-  rateAppBtn: document.getElementById('rateAppBtn'),
+  const $ = (id) => document.getElementById(id);
 
-  settingsModal: document.getElementById('settingsModal'),
-  closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+  const profileButton = $("profileButton");
+  const profileDropdown = $("profileDropdown");
 
-  settingsProfileName: document.getElementById('settingsProfileName'),
-  settingsProfileEmail: document.getElementById('settingsProfileEmail'),
-  settingsProfilePhone: document.getElementById('settingsProfilePhone'),
-  settingsGuardianName: document.getElementById('settingsGuardianName'),
-  settingsTrustedName: document.getElementById('settingsTrustedName'),
-  settingsSafeAddress: document.getElementById('settingsSafeAddress'),
+  const profileAvatarText = $("profileAvatarText");
+  const profileDropdownAvatar = $("profileDropdownAvatar");
+  const profileDropdownName = $("profileDropdownName");
+  const profileDropdownEmail = $("profileDropdownEmail");
 
-  editProfileSection: document.getElementById('editProfileSection'),
-  editProfileForm: document.getElementById('editProfileForm'),
-  editProfileMessage: document.getElementById('editProfileMessage'),
+  const profileInfoBtn = $("profileInfoBtn");
+  const editProfileBtn = $("editProfileBtn");
+  const changePasswordMenuBtn = $("changePasswordMenuBtn");
+  const themeMenuBtn = $("themeMenuBtn");
+  const rateAppBtn = $("rateAppBtn");
 
-  editName: document.getElementById('editName'),
-  editEmail: document.getElementById('editEmail'),
-  editPhone: document.getElementById('editPhone'),
-  editGuardianName: document.getElementById('editGuardianName'),
-  editGuardianPhone: document.getElementById('editGuardianPhone'),
-  editTrustedName: document.getElementById('editTrustedName'),
-  editTrustedPhone: document.getElementById('editTrustedPhone'),
-  editSafeAddress: document.getElementById('editSafeAddress'),
+  const settingsModal = $("settingsModal");
+  const closeSettingsBtn = $("closeSettingsBtn");
 
-  themeSection: document.getElementById('themeSection'),
-  themeOptions: document.querySelectorAll('.theme-option'),
+  const settingsProfileName = $("settingsProfileName");
+  const settingsProfileEmail = $("settingsProfileEmail");
+  const settingsProfilePhone = $("settingsProfilePhone");
+  const settingsGuardianName = $("settingsGuardianName");
+  const settingsTrustedName = $("settingsTrustedName");
+  const settingsSafeAddress = $("settingsSafeAddress");
 
-  ratingStars: document.querySelectorAll('.rating-star'),
-  ratingMessage: document.getElementById('ratingMessage'),
+  const editProfileForm = $("editProfileForm");
+  const editProfileMessage = $("editProfileMessage");
 
-  openPasswordSectionBtn:
-    document.getElementById('openPasswordSectionBtn'),
+  const editName = $("editName");
+  const editEmail = $("editEmail");
+  const editPhone = $("editPhone");
+  const editGuardianName = $("editGuardianName");
+  const editGuardianPhone = $("editGuardianPhone");
+  const editTrustedName = $("editTrustedName");
+  const editTrustedPhone = $("editTrustedPhone");
+  const editSafeAddress = $("editSafeAddress");
 
-  settingsPasswordSection:
-    document.getElementById('settingsPasswordSection'),
+  const openPasswordSectionBtn = $("openPasswordSectionBtn");
 
-  securitySection:
-    document.getElementById('securitySection')
-};
+  const themeOptions =
+    document.querySelectorAll(".theme-option");
 
+  const ratingStars =
+    document.querySelectorAll(".rating-star");
 
-/* =====================================================
-   SETTINGS STORAGE
-===================================================== */
+  const ratingMessage = $("ratingMessage");
 
-const SETTINGS_THEME_KEY =
-  'rakshasutra-theme';
-
-const SETTINGS_RATING_KEY =
-  'rakshasutra-rating';
+  const SETTINGS_THEME_KEY = "rakshasutra-theme";
+  const SETTINGS_RATING_KEY = "rakshasutra-rating";
 
 
-/* =====================================================
-   PROFILE MENU
-===================================================== */
+  /* =======================================================
+     CURRENT USER
+     USE EXISTING GLOBAL IF AVAILABLE
+     ======================================================= */
 
-function toggleProfileMenu() {
-  if (!profileEls.profileDropdown) return;
+  function getCurrentUserSafe() {
+    try {
+      if (
+        typeof currentUser !== "undefined" &&
+        currentUser
+      ) {
+        return currentUser;
+      }
+    } catch (error) {}
 
-  const isOpen =
-    profileEls.profileDropdown.classList.toggle('open');
+    try {
+      const possibleKeys = [
+        "rakshasutra-current-user",
+        "rakshasutra-currentUser",
+        "currentUser",
+        "loggedInUser",
+        "user"
+      ];
 
-  if (profileEls.profileButton) {
-    profileEls.profileButton.setAttribute(
-      'aria-expanded',
-      String(isOpen)
-    );
+      for (const key of possibleKeys) {
+        const value = localStorage.getItem(key);
+
+        if (!value) continue;
+
+        try {
+          const parsed = JSON.parse(value);
+
+          if (parsed && typeof parsed === "object") {
+            return parsed;
+          }
+        } catch (error) {}
+      }
+    } catch (error) {}
+
+    return null;
   }
-}
 
 
-function closeProfileMenu() {
-  if (!profileEls.profileDropdown) return;
+  /* =======================================================
+     TOAST
+     ======================================================= */
 
-  profileEls.profileDropdown.classList.remove('open');
+  function safeToast(message) {
+    try {
+      if (
+        typeof showToast === "function"
+      ) {
+        showToast(message);
+        return;
+      }
+    } catch (error) {}
 
-  if (profileEls.profileButton) {
-    profileEls.profileButton.setAttribute(
-      'aria-expanded',
-      'false'
+    let toast = document.getElementById(
+      "rakshasutraSettingsToast"
     );
-  }
-}
 
+    if (!toast) {
+      toast = document.createElement("div");
 
-/* =====================================================
-   SETTINGS MODAL
-===================================================== */
+      toast.id =
+        "rakshasutraSettingsToast";
 
-function openSettings(section = 'profile') {
-  if (!requireLogin()) return;
+      toast.style.position = "fixed";
+      toast.style.bottom = "25px";
+      toast.style.left = "50%";
+      toast.style.transform =
+        "translateX(-50%)";
+      toast.style.zIndex = "99999";
+      toast.style.padding = "12px 18px";
+      toast.style.borderRadius = "12px";
+      toast.style.background = "#111827";
+      toast.style.color = "#fff";
+      toast.style.fontSize = "14px";
+      toast.style.boxShadow =
+        "0 10px 30px rgba(0,0,0,.35)";
 
-  closeProfileMenu();
-
-  if (!profileEls.settingsModal) return;
-
-  profileEls.settingsModal.classList.add('open');
-
-  profileEls.settingsModal.setAttribute(
-    'aria-hidden',
-    'false'
-  );
-
-  renderSettingsProfile();
-  fillEditProfileForm();
-  loadSavedRating();
-  applySavedTheme();
-
-  setTimeout(() => {
-    const target =
-      document.getElementById(
-        section === 'edit'
-          ? 'editProfileSection'
-          : section === 'password'
-            ? 'settingsPasswordSection'
-            : section === 'theme'
-              ? 'themeSection'
-              : section === 'rating'
-                ? 'ratingSection'
-                : 'profileInfoSection'
-      );
-
-    if (target) {
-      target.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
+      document.body.appendChild(toast);
     }
-  }, 50);
-}
+
+    toast.textContent = message;
+    toast.style.display = "block";
+
+    clearTimeout(
+      window.rakshaToastTimer
+    );
+
+    window.rakshaToastTimer =
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 2500);
+  }
 
 
-function closeSettings() {
-  if (!profileEls.settingsModal) return;
+  /* =======================================================
+     PROFILE MENU
+     ======================================================= */
 
-  profileEls.settingsModal.classList.remove('open');
+  function openProfileMenu() {
+    if (!profileDropdown) return;
 
-  profileEls.settingsModal.setAttribute(
-    'aria-hidden',
-    'true'
-  );
-}
+    profileDropdown.classList.add("open");
 
-
-/* =====================================================
-   PROFILE AVATAR
-===================================================== */
-
-function getProfilePhoto(user) {
-  if (!user) return '';
-
-  return (
-    user.profilePhoto ||
-    user.avatar ||
-    user.photoURL ||
-    user.photo ||
-    ''
-  );
-}
-
-
-function renderProfileAvatar() {
-  if (!currentUser) return;
-
-  const photo =
-    getProfilePhoto(currentUser);
-
-  if (
-    profileEls.profileAvatarText
-  ) {
-    if (photo) {
-      profileEls.profileAvatarText.innerHTML =
-        '';
-
-      const img =
-        document.createElement('img');
-
-      img.src = photo;
-      img.alt = 'Profile photo';
-
-      profileEls.profileAvatarText.appendChild(
-        img
+    if (profileButton) {
+      profileButton.setAttribute(
+        "aria-expanded",
+        "true"
       );
+    }
+  }
+
+
+  function closeProfileMenu() {
+    if (!profileDropdown) return;
+
+    profileDropdown.classList.remove("open");
+
+    if (profileButton) {
+      profileButton.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+    }
+  }
+
+
+  function toggleProfileMenu() {
+    if (!profileDropdown) return;
+
+    if (
+      profileDropdown.classList.contains("open")
+    ) {
+      closeProfileMenu();
     } else {
-      profileEls.profileAvatarText.textContent =
-        '👤';
+      openProfileMenu();
     }
   }
 
-  if (
-    profileEls.profileDropdownAvatar
-  ) {
-    if (photo) {
-      profileEls.profileDropdownAvatar.innerHTML =
-        '';
 
-      const img =
-        document.createElement('img');
+  /* =======================================================
+     PROFILE PHOTO
+     ======================================================= */
 
-      img.src = photo;
-      img.alt = 'Profile photo';
+  function getProfilePhoto(user) {
+    if (!user) return "";
 
-      profileEls.profileDropdownAvatar.appendChild(
-        img
-      );
-    } else {
-      profileEls.profileDropdownAvatar.textContent =
-        '👤';
-    }
-  }
-}
-
-
-/* =====================================================
-   PROFILE INFORMATION
-===================================================== */
-
-function renderSettingsProfile() {
-  if (!currentUser) return;
-
-  if (
-    profileEls.profileDropdownName
-  ) {
-    profileEls.profileDropdownName.textContent =
-      currentUser.fullName ||
-      currentUser.name ||
-      'User';
-  }
-
-  if (
-    profileEls.profileDropdownEmail
-  ) {
-    profileEls.profileDropdownEmail.textContent =
-      currentUser.email ||
-      'No email available';
-  }
-
-  if (
-    profileEls.settingsProfileName
-  ) {
-    profileEls.settingsProfileName.textContent =
-      currentUser.fullName ||
-      currentUser.name ||
-      '—';
-  }
-
-  if (
-    profileEls.settingsProfileEmail
-  ) {
-    profileEls.settingsProfileEmail.textContent =
-      currentUser.email ||
-      '—';
-  }
-
-  if (
-    profileEls.settingsProfilePhone
-  ) {
-    profileEls.settingsProfilePhone.textContent =
-      currentUser.phone ||
-      '—';
-  }
-
-  if (
-    profileEls.settingsGuardianName
-  ) {
-    profileEls.settingsGuardianName.textContent =
-      currentUser.guardianName ||
-      '—';
-  }
-
-  if (
-    profileEls.settingsTrustedName
-  ) {
-    profileEls.settingsTrustedName.textContent =
-      currentUser.trustedName ||
-      '—';
-  }
-
-  if (
-    profileEls.settingsSafeAddress
-  ) {
-    profileEls.settingsSafeAddress.textContent =
-      currentUser.trustedAddress ||
-      '—';
-  }
-
-  renderProfileAvatar();
-}
-
-
-/* =====================================================
-   EDIT PROFILE FORM
-===================================================== */
-
-function fillEditProfileForm() {
-  if (!currentUser) return;
-
-  if (profileEls.editName) {
-    profileEls.editName.value =
-      currentUser.fullName ||
-      currentUser.name ||
-      '';
-  }
-
-  if (profileEls.editEmail) {
-    profileEls.editEmail.value =
-      currentUser.email ||
-      '';
-  }
-
-  if (profileEls.editPhone) {
-    profileEls.editPhone.value =
-      currentUser.phone ||
-      '';
-  }
-
-  if (profileEls.editGuardianName) {
-    profileEls.editGuardianName.value =
-      currentUser.guardianName ||
-      '';
-  }
-
-  if (profileEls.editGuardianPhone) {
-    profileEls.editGuardianPhone.value =
-      currentUser.guardianPhone ||
-      '';
-  }
-
-  if (profileEls.editTrustedName) {
-    profileEls.editTrustedName.value =
-      currentUser.trustedName ||
-      '';
-  }
-
-  if (profileEls.editTrustedPhone) {
-    profileEls.editTrustedPhone.value =
-      currentUser.trustedPhone ||
-      '';
-  }
-
-  if (profileEls.editSafeAddress) {
-    profileEls.editSafeAddress.value =
-      currentUser.trustedAddress ||
-      '';
-  }
-}
-
-
-function setEditProfileMessage(
-  message,
-  success = false
-) {
-  if (!profileEls.editProfileMessage) {
-    return;
-  }
-
-  profileEls.editProfileMessage.textContent =
-    message;
-
-  profileEls.editProfileMessage.style.color =
-    success
-      ? '#22c55e'
-      : '#ef4444';
-}
-
-
-function saveEditedProfile(event) {
-  event.preventDefault();
-
-  if (!requireLogin()) return;
-
-  const fullName =
-    profileEls.editName?.value.trim() || '';
-
-  const email =
-    profileEls.editEmail?.value.trim() || '';
-
-  const phone =
-    profileEls.editPhone?.value.trim() || '';
-
-  const guardianName =
-    profileEls.editGuardianName?.value.trim() || '';
-
-  const guardianPhone =
-    profileEls.editGuardianPhone?.value.trim() || '';
-
-  const trustedName =
-    profileEls.editTrustedName?.value.trim() || '';
-
-  const trustedPhone =
-    profileEls.editTrustedPhone?.value.trim() || '';
-
-  const trustedAddress =
-    profileEls.editSafeAddress?.value.trim() || '';
-
-  if (!fullName) {
-    setEditProfileMessage(
-      'Please enter your full name.'
-    );
-
-    return;
-  }
-
-  if (
-    email &&
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  ) {
-    setEditProfileMessage(
-      'Please enter a valid email address.'
-    );
-
-    return;
-  }
-
-  const users =
-    readUsers();
-
-  if (!Array.isArray(users)) {
-    setEditProfileMessage(
-      'Unable to access account data.'
-    );
-
-    return;
-  }
-
-  const index =
-    users.findIndex(
-      (user) =>
-        user.id === currentUser.id
-    );
-
-  if (index === -1) {
-    setEditProfileMessage(
-      'Your account could not be found.'
-    );
-
-    return;
-  }
-
-  const updatedUser = {
-    ...users[index],
-
-    fullName,
-    email,
-    phone,
-
-    guardianName,
-    guardianPhone,
-
-    trustedName,
-    trustedPhone,
-
-    trustedAddress
-  };
-
-  users[index] =
-    updatedUser;
-
-  try {
-    localStorage.setItem(
-      'rakshasutra-users',
-      JSON.stringify(users)
-    );
-
-    currentUser =
-      updatedUser;
-
-    saveSession(
-      currentUser
-    );
-
-    renderUser();
-    renderSettingsProfile();
-
-    setEditProfileMessage(
-      'Profile updated successfully.',
-      true
-    );
-
-    showToast(
-      'Profile updated successfully.'
-    );
-
-    addActivity(
-      '👤 Profile information was updated.'
-    );
-
-  } catch (error) {
-    console.error(
-      'Profile update error:',
-      error
-    );
-
-    setEditProfileMessage(
-      'Could not save profile changes.'
-    );
-  }
-}
-
-
-/* =====================================================
-   THEME
-===================================================== */
-
-function applyTheme(theme) {
-  if (
-    theme !== 'dark' &&
-    theme !== 'light' &&
-    theme !== 'system'
-  ) {
-    theme = 'dark';
-  }
-
-  document.documentElement.setAttribute(
-    'data-theme',
-    theme
-  );
-
-  document.body.setAttribute(
-    'data-theme',
-    theme
-  );
-
-  try {
-    localStorage.setItem(
-      SETTINGS_THEME_KEY,
-      theme
-    );
-  } catch (error) {
-    console.warn(
-      'Could not save theme:',
-      error
-    );
-  }
-
-  updateThemeButtons(
-    theme
-  );
-}
-
-
-function getSavedTheme() {
-  try {
     return (
-      localStorage.getItem(
-        SETTINGS_THEME_KEY
-      ) ||
-      'dark'
+      user.profilePhoto ||
+      user.profilePicture ||
+      user.avatar ||
+      user.photoURL ||
+      user.photo ||
+      ""
     );
-  } catch {
-    return 'dark';
-  }
-}
-
-
-function applySavedTheme() {
-  applyTheme(
-    getSavedTheme()
-  );
-}
-
-
-function updateThemeButtons(theme) {
-  if (!profileEls.themeOptions) {
-    return;
   }
 
-  profileEls.themeOptions.forEach(
-    (button) => {
-      const buttonTheme =
-        button.dataset.theme;
 
-      button.classList.toggle(
-        'active',
-        buttonTheme === theme
-      );
+  function renderAvatar(element, photo) {
+    if (!element) return;
+
+    element.innerHTML = "";
+
+    if (photo) {
+      const img =
+        document.createElement("img");
+
+      img.src = photo;
+      img.alt = "Profile photo";
+
+      img.onerror = function () {
+        element.textContent = "👤";
+      };
+
+      element.appendChild(img);
+    } else {
+      element.textContent = "👤";
     }
-  );
-}
-
-
-function setupThemeButtons() {
-  if (!profileEls.themeOptions) {
-    return;
   }
 
-  profileEls.themeOptions.forEach(
-    (button) => {
-      button.addEventListener(
-        'click',
-        () => {
-          const theme =
-            button.dataset.theme;
 
-          applyTheme(theme);
+  /* =======================================================
+     RENDER PROFILE
+     ======================================================= */
 
-          showToast(
-            `Theme changed to ${
-              theme.charAt(0).toUpperCase() +
-              theme.slice(1)
-            }.`
-          );
-        }
+  function renderProfile() {
+    const user =
+      getCurrentUserSafe();
+
+    if (!user) {
+      if (profileDropdownName) {
+        profileDropdownName.textContent =
+          "User";
+      }
+
+      if (profileDropdownEmail) {
+        profileDropdownEmail.textContent =
+          "";
+      }
+
+      renderAvatar(
+        profileAvatarText,
+        ""
       );
+
+      renderAvatar(
+        profileDropdownAvatar,
+        ""
+      );
+
+      return;
     }
-  );
-}
 
+    const name =
+      user.fullName ||
+      user.name ||
+      user.username ||
+      "User";
 
-/* =====================================================
-   RATING
-===================================================== */
+    const email =
+      user.email ||
+      "No email available";
 
-function updateRatingStars(rating) {
-  if (!profileEls.ratingStars) {
-    return;
+    if (profileDropdownName) {
+      profileDropdownName.textContent =
+        name;
+    }
+
+    if (profileDropdownEmail) {
+      profileDropdownEmail.textContent =
+        email;
+    }
+
+    if (settingsProfileName) {
+      settingsProfileName.textContent =
+        name;
+    }
+
+    if (settingsProfileEmail) {
+      settingsProfileEmail.textContent =
+        email;
+    }
+
+    if (settingsProfilePhone) {
+      settingsProfilePhone.textContent =
+        user.phone ||
+        user.mobile ||
+        "—";
+    }
+
+    if (settingsGuardianName) {
+      settingsGuardianName.textContent =
+        user.guardianName ||
+        user.guardian?.name ||
+        "—";
+    }
+
+    if (settingsTrustedName) {
+      settingsTrustedName.textContent =
+        user.trustedName ||
+        user.trustedPerson?.name ||
+        "—";
+    }
+
+    if (settingsSafeAddress) {
+      settingsSafeAddress.textContent =
+        user.trustedAddress ||
+        user.safeAddress ||
+        "—";
+    }
+
+    const photo =
+      getProfilePhoto(user);
+
+    renderAvatar(
+      profileAvatarText,
+      photo
+    );
+
+    renderAvatar(
+      profileDropdownAvatar,
+      photo
+    );
   }
 
-  profileEls.ratingStars.forEach(
-    (star) => {
-      const value =
-        Number(
-          star.dataset.rating
+
+  /* =======================================================
+     SETTINGS MODAL
+     ======================================================= */
+
+  function openSettings(section) {
+    if (!settingsModal) return;
+
+    closeProfileMenu();
+
+    settingsModal.classList.add("open");
+
+    settingsModal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+    renderProfile();
+    fillEditForm();
+    loadRating();
+    applySavedTheme();
+
+    setTimeout(() => {
+      let targetId =
+        "profileInfoSection";
+
+      if (section === "edit") {
+        targetId =
+          "editProfileSection";
+      }
+
+      if (section === "password") {
+        targetId =
+          "settingsPasswordSection";
+      }
+
+      if (section === "theme") {
+        targetId =
+          "themeSection";
+      }
+
+      if (section === "rating") {
+        targetId =
+          "ratingSection";
+      }
+
+      const target =
+        document.getElementById(
+          targetId
         );
 
-      star.classList.toggle(
-        'active',
-        value <= rating
+      if (target) {
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
+    }, 100);
+  }
+
+
+  function closeSettings() {
+    if (!settingsModal) return;
+
+    settingsModal.classList.remove(
+      "open"
+    );
+
+    settingsModal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+  }
+
+
+  /* =======================================================
+     EDIT PROFILE
+     ======================================================= */
+
+  function fillEditForm() {
+    const user =
+      getCurrentUserSafe();
+
+    if (!user) return;
+
+    if (editName) {
+      editName.value =
+        user.fullName ||
+        user.name ||
+        "";
+    }
+
+    if (editEmail) {
+      editEmail.value =
+        user.email ||
+        "";
+    }
+
+    if (editPhone) {
+      editPhone.value =
+        user.phone ||
+        user.mobile ||
+        "";
+    }
+
+    if (editGuardianName) {
+      editGuardianName.value =
+        user.guardianName ||
+        user.guardian?.name ||
+        "";
+    }
+
+    if (editGuardianPhone) {
+      editGuardianPhone.value =
+        user.guardianPhone ||
+        user.guardian?.phone ||
+        "";
+    }
+
+    if (editTrustedName) {
+      editTrustedName.value =
+        user.trustedName ||
+        user.trustedPerson?.name ||
+        "";
+    }
+
+    if (editTrustedPhone) {
+      editTrustedPhone.value =
+        user.trustedPhone ||
+        user.trustedPerson?.phone ||
+        "";
+    }
+
+    if (editSafeAddress) {
+      editSafeAddress.value =
+        user.trustedAddress ||
+        user.safeAddress ||
+        "";
+    }
+  }
+
+
+  function setEditMessage(
+    message,
+    success
+  ) {
+    if (!editProfileMessage) return;
+
+    editProfileMessage.textContent =
+      message;
+
+    editProfileMessage.style.color =
+      success
+        ? "#22c55e"
+        : "#ef4444";
+  }
+
+
+  function getUsers() {
+    const keys = [
+      "rakshasutra-users",
+      "users",
+      "rakshaSutraUsers"
+    ];
+
+    for (const key of keys) {
+      try {
+        const data =
+          localStorage.getItem(key);
+
+        if (!data) continue;
+
+        const users =
+          JSON.parse(data);
+
+        if (Array.isArray(users)) {
+          return {
+            key,
+            users
+          };
+        }
+      } catch (error) {}
+    }
+
+    return {
+      key: "rakshasutra-users",
+      users: []
+    };
+  }
+
+
+  function saveCurrentUser(
+    updatedUser
+  ) {
+    try {
+      if (
+        typeof saveSession ===
+        "function"
+      ) {
+        saveSession(
+          updatedUser
+        );
+      }
+    } catch (error) {
+      console.warn(error);
+    }
+
+    try {
+      localStorage.setItem(
+        "rakshasutra-current-user",
+        JSON.stringify(
+          updatedUser
+        )
+      );
+    } catch (error) {}
+
+    try {
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify(
+          updatedUser
+        )
+      );
+    } catch (error) {}
+  }
+
+
+  function saveEditedProfile(event) {
+    event.preventDefault();
+
+    const user =
+      getCurrentUserSafe();
+
+    if (!user) {
+      setEditMessage(
+        "Please log in again.",
+        false
+      );
+      return;
+    }
+
+    const name =
+      editName?.value.trim() ||
+      "";
+
+    const email =
+      editEmail?.value.trim() ||
+      "";
+
+    const phone =
+      editPhone?.value.trim() ||
+      "";
+
+    const guardianName =
+      editGuardianName?.value.trim() ||
+      "";
+
+    const guardianPhone =
+      editGuardianPhone?.value.trim() ||
+      "";
+
+    const trustedName =
+      editTrustedName?.value.trim() ||
+      "";
+
+    const trustedPhone =
+      editTrustedPhone?.value.trim() ||
+      "";
+
+    const safeAddress =
+      editSafeAddress?.value.trim() ||
+      "";
+
+    if (!name) {
+      setEditMessage(
+        "Please enter your name.",
+        false
+      );
+      return;
+    }
+
+    if (
+      email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        email
+      )
+    ) {
+      setEditMessage(
+        "Please enter a valid email.",
+        false
+      );
+      return;
+    }
+
+    const updatedUser = {
+      ...user,
+
+      fullName: name,
+      name: name,
+
+      email,
+      phone,
+
+      guardianName,
+      guardianPhone,
+
+      trustedName,
+      trustedPhone,
+
+      trustedAddress: safeAddress,
+      safeAddress
+    };
+
+    const result =
+      getUsers();
+
+    const users =
+      result.users;
+
+    let index =
+      users.findIndex(
+        (item) => {
+
+          if (
+            user.id &&
+            item.id
+          ) {
+            return (
+              item.id ===
+              user.id
+            );
+          }
+
+          return (
+            item.email &&
+            user.email &&
+            item.email.toLowerCase() ===
+              user.email.toLowerCase()
+          );
+        }
+      );
+
+    if (index === -1) {
+      users.push(
+        updatedUser
+      );
+
+      index =
+        users.length - 1;
+    }
+
+    users[index] =
+      updatedUser;
+
+    try {
+      localStorage.setItem(
+        result.key,
+        JSON.stringify(users)
+      );
+
+      saveCurrentUser(
+        updatedUser
+      );
+
+      try {
+        if (
+          typeof renderUser ===
+          "function"
+        ) {
+          renderUser();
+        }
+      } catch (error) {}
+
+      renderProfile();
+
+      setEditMessage(
+        "Profile updated successfully.",
+        true
+      );
+
+      safeToast(
+        "Profile updated successfully."
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      setEditMessage(
+        "Unable to save profile.",
+        false
       );
     }
-  );
-}
-
-
-function saveRating(rating) {
-  try {
-    localStorage.setItem(
-      SETTINGS_RATING_KEY,
-      String(rating)
-    );
-  } catch (error) {
-    console.warn(
-      'Could not save rating:',
-      error
-    );
   }
 
-  updateRatingStars(
-    rating
-  );
 
-  if (profileEls.ratingMessage) {
-    profileEls.ratingMessage.textContent =
-      `Thank you! You rated RakshaSutra ${rating}/5.`;
+  /* =======================================================
+     THEME
+     ======================================================= */
 
-    profileEls.ratingMessage.style.color =
-      '#22c55e';
-  }
+  function applyTheme(theme) {
+    if (
+      theme !== "dark" &&
+      theme !== "light" &&
+      theme !== "system"
+    ) {
+      theme = "dark";
+    }
 
-  showToast(
-    `Thanks for rating RakshaSutra ${rating}/5 ⭐`
-  );
-}
+    if (theme === "system") {
+      const dark =
+        window.matchMedia &&
+        window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
 
-
-function loadSavedRating() {
-  let rating = 0;
-
-  try {
-    rating =
-      Number(
-        localStorage.getItem(
-          SETTINGS_RATING_KEY
-        ) || 0
+      document.documentElement.setAttribute(
+        "data-theme",
+        dark ? "dark" : "light"
       );
-  } catch {
-    rating = 0;
+
+      document.body.setAttribute(
+        "data-theme",
+        dark ? "dark" : "light"
+      );
+    } else {
+      document.documentElement.setAttribute(
+        "data-theme",
+        theme
+      );
+
+      document.body.setAttribute(
+        "data-theme",
+        theme
+      );
+    }
+
+    try {
+      localStorage.setItem(
+        SETTINGS_THEME_KEY,
+        theme
+      );
+    } catch (error) {}
+
+    themeOptions.forEach(
+      (button) => {
+        button.classList.toggle(
+          "active",
+          button.dataset.theme ===
+            theme
+        );
+      }
+    );
   }
 
-  updateRatingStars(
+
+  function applySavedTheme() {
+    let theme = "dark";
+
+    try {
+      theme =
+        localStorage.getItem(
+          SETTINGS_THEME_KEY
+        ) || "dark";
+    } catch (error) {}
+
+    applyTheme(theme);
+  }
+
+
+  /* =======================================================
+     RATING
+     ======================================================= */
+
+  function updateRatingStars(
     rating
-  );
-}
+  ) {
+    ratingStars.forEach(
+      (star) => {
+        const value =
+          Number(
+            star.dataset.rating
+          );
 
-
-function setupRating() {
-  if (!profileEls.ratingStars) {
-    return;
+        star.classList.toggle(
+          "active",
+          value <= rating
+        );
+      }
+    );
   }
 
-  profileEls.ratingStars.forEach(
-    (star) => {
-      star.addEventListener(
-        'click',
-        () => {
-          const rating =
-            Number(
-              star.dataset.rating
-            );
 
-          saveRating(
-            rating
+  function saveRating(rating) {
+    try {
+      localStorage.setItem(
+        SETTINGS_RATING_KEY,
+        String(rating)
+      );
+    } catch (error) {}
+
+    updateRatingStars(
+      rating
+    );
+
+    if (ratingMessage) {
+      ratingMessage.textContent =
+        `Thank you! You rated RakshaSutra ${rating}/5 ⭐`;
+
+      ratingMessage.style.color =
+        "#22c55e";
+    }
+
+    safeToast(
+      `Thank you for rating RakshaSutra ${rating}/5 ⭐`
+    );
+  }
+
+
+  function loadRating() {
+    let rating = 0;
+
+    try {
+      rating =
+        Number(
+          localStorage.getItem(
+            SETTINGS_RATING_KEY
+          ) || 0
+        );
+    } catch (error) {}
+
+    updateRatingStars(
+      rating
+    );
+  }
+
+
+  /* =======================================================
+     EVENT LISTENERS
+     ======================================================= */
+
+  if (profileButton) {
+    profileButton.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        toggleProfileMenu();
+      }
+    );
+  }
+
+
+  if (profileInfoBtn) {
+    profileInfoBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        openSettings(
+          "profile"
+        );
+      }
+    );
+  }
+
+
+  if (editProfileBtn) {
+    editProfileBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        openSettings(
+          "edit"
+        );
+      }
+    );
+  }
+
+
+  if (changePasswordMenuBtn) {
+    changePasswordMenuBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        openSettings(
+          "password"
+        );
+      }
+    );
+  }
+
+
+  if (themeMenuBtn) {
+    themeMenuBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        openSettings(
+          "theme"
+        );
+      }
+    );
+  }
+
+
+  if (rateAppBtn) {
+    rateAppBtn.addEventListener(
+      "click",
+      function (event) {
+        event.preventDefault();
+
+        openSettings(
+          "rating"
+        );
+      }
+    );
+  }
+
+
+  if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener(
+      "click",
+      closeSettings
+    );
+  }
+
+
+  if (settingsModal) {
+    settingsModal.addEventListener(
+      "click",
+      function (event) {
+        if (
+          event.target ===
+          settingsModal
+        ) {
+          closeSettings();
+        }
+      }
+    );
+  }
+
+
+  if (editProfileForm) {
+    editProfileForm.addEventListener(
+      "submit",
+      saveEditedProfile
+    );
+  }
+
+
+  if (openPasswordSectionBtn) {
+    openPasswordSectionBtn.addEventListener(
+      "click",
+      function () {
+        openSettings(
+          "password"
+        );
+      }
+    );
+  }
+
+
+  themeOptions.forEach(
+    (button) => {
+      button.addEventListener(
+        "click",
+        function () {
+          applyTheme(
+            button.dataset.theme
+          );
+
+          safeToast(
+            "Theme changed successfully."
           );
         }
       );
     }
   );
-}
 
 
-/* =====================================================
-   PASSWORD MENU
-===================================================== */
-
-function openPasswordFromSettings() {
-  openSettings(
-    'password'
-  );
-
-  setTimeout(
-    () => {
-      if (
-        profileEls.securitySection
-      ) {
-        profileEls.securitySection.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
-
-      if (
-        els.currentPassword
-      ) {
-        els.currentPassword.focus();
-      }
-    },
-    100
-  );
-}
-
-
-/* =====================================================
-   SETTINGS EVENTS
-===================================================== */
-
-function setupProfileSettings() {
-
-  on(
-    profileEls.profileButton,
-    'click',
-    (event) => {
-      event.stopPropagation();
-
-      toggleProfileMenu();
-    }
-  );
-
-
-  on(
-    profileEls.profileInfoBtn,
-    'click',
-    () => {
-      openSettings(
-        'profile'
+  ratingStars.forEach(
+    (star) => {
+      star.addEventListener(
+        "click",
+        function () {
+          saveRating(
+            Number(
+              star.dataset.rating
+            )
+          );
+        }
       );
     }
-  );
-
-
-  on(
-    profileEls.editProfileBtn,
-    'click',
-    () => {
-      openSettings(
-        'edit'
-      );
-    }
-  );
-
-
-  on(
-    profileEls.changePasswordMenuBtn,
-    'click',
-    () => {
-      openPasswordFromSettings();
-    }
-  );
-
-
-  on(
-    profileEls.themeMenuBtn,
-    'click',
-    () => {
-      openSettings(
-        'theme'
-      );
-    }
-  );
-
-
-  on(
-    profileEls.rateAppBtn,
-    'click',
-    () => {
-      openSettings(
-        'rating'
-      );
-    }
-  );
-
-
-  on(
-    profileEls.closeSettingsBtn,
-    'click',
-    closeSettings
-  );
-
-
-  on(
-    profileEls.settingsModal,
-    'click',
-    (event) => {
-      if (
-        event.target ===
-        profileEls.settingsModal
-      ) {
-        closeSettings();
-      }
-    }
-  );
-
-
-  on(
-    profileEls.editProfileForm,
-    'submit',
-    saveEditedProfile
-  );
-
-
-  on(
-    profileEls.openPasswordSectionBtn,
-    'click',
-    openPasswordFromSettings
   );
 
 
   document.addEventListener(
-    'click',
-    (event) => {
+    "click",
+    function (event) {
 
       if (
-        !profileEls.profileDropdown ||
-        !profileEls.profileButton
+        !profileDropdown ||
+        !profileButton
       ) {
         return;
       }
 
-      const clickedInside =
-        profileEls.profileDropdown.contains(
+      if (
+        !profileDropdown.contains(
           event.target
-        ) ||
-        profileEls.profileButton.contains(
+        ) &&
+        !profileButton.contains(
           event.target
-        );
-
-      if (!clickedInside) {
+        )
+      ) {
         closeProfileMenu();
       }
     }
@@ -890,32 +1076,28 @@ function setupProfileSettings() {
 
 
   document.addEventListener(
-    'keydown',
-    (event) => {
-
+    "keydown",
+    function (event) {
       if (
-        event.key === 'Escape'
+        event.key === "Escape"
       ) {
         closeProfileMenu();
         closeSettings();
       }
-
     }
   );
 
-}
 
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
 
-/* =====================================================
-   START PROFILE SETTINGS
-===================================================== */
+  renderProfile();
+  applySavedTheme();
+  loadRating();
 
-setupProfileSettings();
-setupThemeButtons();
-setupRating();
-applySavedTheme();
+  console.log(
+    "✅ RakshaSutra Profile & Settings loaded successfully."
+  );
 
-if (currentUser) {
-  renderSettingsProfile();
-  fillEditProfileForm();
-}
+})();
