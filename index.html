@@ -2,84 +2,320 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#07111f" />
-    <meta name="description" content="RakshaSutra is a personal safety app with SOS, voice support, live sharing, and AI-driven risk detection." />
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" href="favicon.png" type="image/png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="pwa.css" />
-    <title>RakshaSutra | Your Digital Bodyguard</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <meta
+      name="theme-color"
+      content="#07111f"
+    />
+
+    <meta
+      name="description"
+      content="RakshaSutra is a personal safety app with SOS, voice support, live location sharing, and AI-driven risk detection."
+    />
+
+    <link
+      rel="manifest"
+      href="manifest.json"
+    />
+
+    <link
+      rel="icon"
+      href="favicon.png"
+      type="image/png"
+    />
+
+    <link
+      rel="apple-touch-icon"
+      href="apple-touch-icon.png"
+    />
+
+    <link
+      rel="stylesheet"
+      href="styles.css"
+    />
+
+    <link
+      rel="stylesheet"
+      href="pwa.css"
+    />
+
+    <title>
+      RakshaSutra | Your Digital Bodyguard
+    </title>
   </head>
+
   <body>
+
     <div class="app-shell">
+
+      <!-- =================================================
+           HEADER
+      ================================================= -->
+
       <header class="topbar">
+
         <div class="brand brand-with-logo">
-          <img class="brand-logo-full" src="rakshasutra-logo.png" alt="RakshaSutra - Your Safety, Our Promise" />
+
+          <img
+            class="brand-logo-full"
+            src="rakshasutra-logo.png"
+            alt="RakshaSutra - Your Safety, Our Promise"
+          />
+
         </div>
+
+
         <div class="topbar-actions">
-          <a class="ghost-button" href="user.html">Open User App</a>
-          <a class="ghost-button" href="admin.html">Open Admin Portal</a>
+
+          <!-- USER LOGIN -->
+          <a
+            class="ghost-button"
+            href="login.html"
+          >
+            🔐 User Login
+          </a>
+
+
+          <!-- ADMIN -->
+          <a
+            class="ghost-button"
+            href="admin.html"
+          >
+            🛡️ Admin Portal
+          </a>
+
         </div>
+
       </header>
 
+
+      <!-- =================================================
+           MAIN
+      ================================================= -->
+
       <main>
+
+        <!-- =================================================
+             HERO
+        ================================================= -->
+
         <section class="hero">
+
           <div class="hero-copy">
-            <p class="eyebrow">Your safety, our promise.</p>
-            <h2>Protect every journey with one tap.</h2>
-            <p>
-              RakshaSutra brings emergency assistance, account protection, live safety monitoring,
-              and trusted-contact tools into one simple safety platform.
+
+            <p class="eyebrow">
+              Your safety, our promise.
             </p>
+
+
+            <h2>
+              Protect every journey with one tap.
+            </h2>
+
+
+            <p>
+              RakshaSutra brings emergency assistance,
+              account protection, live safety monitoring,
+              and trusted-contact tools into one simple
+              safety platform.
+            </p>
+
+
+            <!-- =================================================
+                 MAIN ACTIONS
+            ================================================= -->
+
             <div class="hero-actions">
-              <a class="primary-btn" href="user.html">Get Started</a>
-              <a class="secondary-link" href="admin.html">Go to Admin</a>
+
+              <!-- IMPORTANT:
+                   USER GOES TO LOGIN FIRST
+              -->
+
+              <a
+                class="primary-btn"
+                href="login.html"
+              >
+                🔐 Login to User App
+              </a>
+
+
+              <!-- REGISTRATION -->
+
+              <a
+                class="secondary-link"
+                href="register.html"
+              >
+                Create Account
+              </a>
+
             </div>
-            <p class="signature">RakshaSutra • Your Safety, Our Promise</p>
+
+
+            <p class="signature">
+              RakshaSutra • Your Safety, Our Promise
+            </p>
+
           </div>
 
-          <div class="hero-panel card logo-showcase">
-            <img src="rakshasutra-logo.png" alt="RakshaSutra logo" class="hero-logo" />
+
+          <!-- =================================================
+               HERO PANEL
+          ================================================= -->
+
+          <div
+            class="hero-panel card logo-showcase"
+          >
+
+            <img
+              src="rakshasutra-logo.png"
+              alt="RakshaSutra logo"
+              class="hero-logo"
+            />
+
+
             <div class="panel-head">
-              <span class="pill active">Protection ready</span>
-              <span class="pill">Trusted circle</span>
+
+              <span class="pill active">
+                Protection ready
+              </span>
+
+              <span class="pill">
+                Trusted circle
+              </span>
+
             </div>
+
+
             <div class="stat-block">
-              <p>Current threat level</p>
-              <h3>24</h3>
-              <small>/ 100</small>
+
+              <p>
+                Current threat level
+              </p>
+
+              <h3>
+                24
+              </h3>
+
+              <small>
+                / 100
+              </small>
+
             </div>
+
+
             <div class="location-card">
-              <p>Safety status</p>
-              <h4>Guardian mode ready</h4>
-              <p>Emergency controls available from the User App.</p>
+
+              <p>
+                Safety status
+              </p>
+
+              <h4>
+                Guardian mode ready
+              </h4>
+
+              <p>
+                Log in to access your
+                emergency controls.
+              </p>
+
             </div>
+
           </div>
+
         </section>
 
-        <section class="features-grid" id="features">
+
+        <!-- =================================================
+             FEATURES
+        ================================================= -->
+
+        <section
+          class="features-grid"
+          id="features"
+        >
+
+          <!-- FEATURE 1 -->
+
           <article class="card feature-card">
-            <h3>One-Tap & Voice SOS</h3>
-            <p>Quickly activate the emergency workflow from the user dashboard.</p>
+
+            <h3>
+              One-Tap & Voice SOS
+            </h3>
+
+            <p>
+              Quickly activate the emergency
+              workflow from the user dashboard.
+            </p>
+
           </article>
+
+
+          <!-- FEATURE 2 -->
+
           <article class="card feature-card">
-            <h3>Live location sharing</h3>
-            <p>Prepare trusted contacts and location information for emergency use.</p>
+
+            <h3>
+              Live Location Sharing
+            </h3>
+
+            <p>
+              Prepare trusted contacts and
+              location information for emergency use.
+            </p>
+
           </article>
+
+
+          <!-- FEATURE 3 -->
+
           <article class="card feature-card">
-            <h3>AI risk detection</h3>
-            <p>Safety checks can help identify higher-risk situations and routes.</p>
+
+            <h3>
+              AI Risk Detection
+            </h3>
+
+            <p>
+              Safety checks can help identify
+              higher-risk situations and routes.
+            </p>
+
           </article>
+
+
+          <!-- FEATURE 4 -->
+
           <article class="card feature-card">
-            <h3>Guardian protection</h3>
-            <p>Keep guardian and trusted-contact information together in one place.</p>
+
+            <h3>
+              Guardian Protection
+            </h3>
+
+            <p>
+              Keep guardian and trusted-contact
+              information together in one place.
+            </p>
+
           </article>
+
         </section>
+
       </main>
+
     </div>
 
-    <script src="pwa.js" defer></script>
+
+    <!-- =================================================
+         PWA
+    ================================================= -->
+
+    <script
+      src="pwa.js"
+      defer
+    ></script>
+
   </body>
 </html>
