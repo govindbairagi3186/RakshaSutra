@@ -1,12 +1,8 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07111f" />
 
     <link rel="manifest" href="manifest.json" />
@@ -19,9 +15,7 @@
     <link rel="stylesheet" href="pwa.css" />
 
     <style>
-      /* =================================================
-         ACCOUNT SECURITY
-      ================================================= */
+      /* ================= ACCOUNT SECURITY ================= */
 
       .security-card {
         margin-top: 24px;
@@ -58,15 +52,15 @@
         box-sizing: border-box;
         padding: 13px 52px 13px 14px;
         border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
         color: inherit;
         outline: none;
         font-size: 15px;
       }
 
       .password-input-wrap input:focus {
-        border-color: rgba(255,255,255,0.45);
+        border-color: rgba(255, 255, 255, 0.45);
       }
 
       .password-toggle {
@@ -83,7 +77,7 @@
       }
 
       .password-toggle:hover {
-        background: rgba(255,255,255,0.08);
+        background: rgba(255, 255, 255, 0.08);
       }
 
       .password-help {
@@ -106,9 +100,308 @@
         flex-wrap: wrap;
       }
 
+      /* ================= PROFILE BUTTON ================= */
+
+      .profile-menu-wrap {
+        position: relative;
+      }
+
+      .profile-button {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-size: 21px;
+        transition: 0.2s ease;
+      }
+
+      .profile-button:hover {
+        transform: scale(1.05);
+        border-color: rgba(255, 255, 255, 0.55);
+      }
+
+      .profile-button img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .profile-dropdown {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        width: 310px;
+        z-index: 1000;
+        padding: 12px;
+        border-radius: 18px;
+        background: rgba(8, 18, 32, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(20px);
+        display: none;
+      }
+
+      .profile-dropdown.open {
+        display: block;
+      }
+
+      .profile-dropdown-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        margin-bottom: 8px;
+      }
+
+      .profile-dropdown-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-size: 24px;
+        flex-shrink: 0;
+      }
+
+      .profile-dropdown-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .profile-dropdown-name {
+        font-weight: 700;
+        font-size: 16px;
+      }
+
+      .profile-dropdown-email {
+        opacity: 0.65;
+        font-size: 12px;
+        margin-top: 3px;
+        word-break: break-word;
+      }
+
+      .profile-menu-item {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 12px;
+        border-radius: 11px;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+      }
+
+      .profile-menu-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .profile-menu-item span:first-child {
+        width: 25px;
+        text-align: center;
+        font-size: 17px;
+      }
+
+      /* ================= SETTINGS MODAL ================= */
+
+      .settings-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .settings-modal.open {
+        display: flex;
+      }
+
+      .settings-card {
+        width: min(760px, 100%);
+        max-height: 90vh;
+        overflow-y: auto;
+        background: #0b1728;
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 22px;
+        padding: 24px;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.55);
+      }
+
+      .settings-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .settings-header h2 {
+        margin: 0;
+      }
+
+      .settings-close {
+        border: 0;
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 20px;
+      }
+
+      .settings-section {
+        padding: 18px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+      }
+
+      .settings-section:last-child {
+        border-bottom: 0;
+      }
+
+      .settings-section h3 {
+        margin: 0 0 6px;
+      }
+
+      .settings-section p {
+        opacity: 0.7;
+        font-size: 13px;
+      }
+
+      .profile-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .profile-info-box {
+        padding: 14px;
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .profile-info-box span {
+        display: block;
+        font-size: 12px;
+        opacity: 0.6;
+        margin-bottom: 5px;
+      }
+
+      .profile-info-box strong {
+        display: block;
+        word-break: break-word;
+      }
+
+      .edit-profile-form {
+        display: grid;
+        gap: 13px;
+      }
+
+      .settings-input,
+      .settings-select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px 13px;
+        border-radius: 11px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        background: rgba(255, 255, 255, 0.06);
+        color: inherit;
+        outline: none;
+      }
+
+      .settings-input:focus,
+      .settings-select:focus {
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+
+      .settings-label {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: block;
+      }
+
+      .theme-options {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .theme-option {
+        padding: 15px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.05);
+        color: inherit;
+        border-radius: 13px;
+        cursor: pointer;
+      }
+
+      .theme-option.active {
+        border-color: #fff;
+        background: rgba(255, 255, 255, 0.13);
+      }
+
+      .rating-stars {
+        display: flex;
+        gap: 7px;
+        margin: 12px 0;
+      }
+
+      .rating-star {
+        border: 0;
+        background: transparent;
+        color: #777;
+        cursor: pointer;
+        font-size: 30px;
+        padding: 0;
+      }
+
+      .rating-star.active {
+        color: #ffd166;
+      }
+
+      .settings-message {
+        min-height: 20px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
       @media (max-width: 600px) {
         .password-actions button {
           width: 100%;
+        }
+
+        .profile-dropdown {
+          right: -10px;
+          width: min(310px, calc(100vw - 30px));
+        }
+
+        .profile-info-grid,
+        .theme-options {
+          grid-template-columns: 1fr;
+        }
+
+        .settings-card {
+          padding: 18px;
         }
       }
     </style>
@@ -118,7 +411,9 @@
     <div class="app-shell">
 
       <!-- ================= HEADER ================= -->
+
       <header class="topbar">
+
         <div class="brand brand-with-logo">
           <img
             class="brand-logo-full"
@@ -134,6 +429,7 @@
         </div>
 
         <div class="topbar-actions">
+
           <a class="ghost-button" href="index.html">
             Home
           </a>
@@ -145,31 +441,133 @@
             Admin Panel
           </a>
 
-          <button
-            class="ghost-button"
-            id="logoutBtn"
-            type="button"
-          >
-            Log out
-          </button>
+          <!-- PROFILE MENU -->
+
+          <div class="profile-menu-wrap">
+
+            <button
+              class="profile-button"
+              id="profileButton"
+              type="button"
+              aria-label="Open profile settings"
+              aria-expanded="false"
+            >
+              <span id="profileAvatarText">👤</span>
+            </button>
+
+            <div
+              class="profile-dropdown"
+              id="profileDropdown"
+            >
+
+              <div class="profile-dropdown-header">
+
+                <div
+                  class="profile-dropdown-avatar"
+                  id="profileDropdownAvatar"
+                >
+                  👤
+                </div>
+
+                <div>
+                  <div
+                    class="profile-dropdown-name"
+                    id="profileDropdownName"
+                  >
+                    User
+                  </div>
+
+                  <div
+                    class="profile-dropdown-email"
+                    id="profileDropdownEmail"
+                  >
+                    —
+                  </div>
+                </div>
+
+              </div>
+
+              <button
+                class="profile-menu-item"
+                id="profileInfoBtn"
+                type="button"
+              >
+                <span>👤</span>
+                <span>Profile Information</span>
+              </button>
+
+              <button
+                class="profile-menu-item"
+                id="editProfileBtn"
+                type="button"
+              >
+                <span>✏️</span>
+                <span>Edit Profile</span>
+              </button>
+
+              <button
+                class="profile-menu-item"
+                id="changePasswordMenuBtn"
+                type="button"
+              >
+                <span>🔐</span>
+                <span>Change Password</span>
+              </button>
+
+              <button
+                class="profile-menu-item"
+                id="themeMenuBtn"
+                type="button"
+              >
+                <span>🎨</span>
+                <span>Theme</span>
+              </button>
+
+              <button
+                class="profile-menu-item"
+                id="rateAppBtn"
+                type="button"
+              >
+                <span>⭐</span>
+                <span>Rate RakshaSutra</span>
+              </button>
+
+              <button
+                class="profile-menu-item"
+                id="logoutBtn"
+                type="button"
+              >
+                <span>🚪</span>
+                <span>Log out</span>
+              </button>
+
+            </div>
+
+          </div>
+
         </div>
+
       </header>
 
 
       <main>
 
         <!-- ================= DASHBOARD ================= -->
+
         <section
           class="dashboard-grid"
           id="dashboardView"
         >
 
           <!-- ================= SOS CARD ================= -->
+
           <div
             class="card status-card"
             id="sos"
           >
+
             <div class="card-head">
+
               <h3>Emergency Controls</h3>
 
               <span
@@ -178,6 +576,7 @@
               >
                 Protected
               </span>
+
             </div>
 
             <div class="control-buttons">
@@ -224,6 +623,7 @@
               </div>
 
               <div class="status-pill">
+
                 <span>Location</span>
 
                 <strong id="locationText">
@@ -233,6 +633,7 @@
                 <small id="coordsText">
                   Location permission required
                 </small>
+
               </div>
 
             </div>
@@ -243,10 +644,12 @@
             >
               Your emergency controls are ready.
             </div>
+
           </div>
 
 
           <!-- ================= SOS LIVE PANEL ================= -->
+
           <div
             class="sos-live-panel"
             id="sosLivePanel"
@@ -279,14 +682,17 @@
 
 
           <!-- ================= EMERGENCY NUMBERS ================= -->
+
           <div class="card route-card">
 
             <div class="card-head">
+
               <h3>Emergency Numbers</h3>
 
               <span class="pill active">
                 India
               </span>
+
             </div>
 
             <div class="emergency-list">
@@ -348,19 +754,23 @@
 
 
         <!-- ================= GUARDIAN PANEL ================= -->
+
         <section class="card guardian-card">
 
           <div class="card-head">
+
             <h3>Guardian Panel</h3>
 
             <span class="pill active">
               Protected Circle
             </span>
+
           </div>
 
           <div class="guardian-grid">
 
             <div class="guardian-item">
+
               <span>Guardian</span>
 
               <strong id="guardianNameDisplay">
@@ -378,10 +788,12 @@
               >
                 💬 Send SOS SMS
               </button>
+
             </div>
 
 
             <div class="guardian-item">
+
               <span>Trusted Contact</span>
 
               <strong id="trustedNameDisplay">
@@ -399,15 +811,18 @@
               >
                 💬 Send SOS SMS
               </button>
+
             </div>
 
 
             <div class="guardian-item">
+
               <span>Safe Address</span>
 
               <strong id="trustedAddressDisplay">
                 —
               </strong>
+
             </div>
 
           </div>
@@ -415,21 +830,24 @@
         </section>
 
 
-        <!-- =================================================
-             ACCOUNT SECURITY / CHANGE PASSWORD
-        ================================================= -->
-        <section class="card security-card">
+        <!-- ================= ACCOUNT SECURITY ================= -->
+
+        <section
+          class="card security-card"
+          id="securitySection"
+        >
 
           <div class="card-head">
 
             <div>
+
               <h3>🔐 Account Security</h3>
 
               <p class="password-help">
                 Change your RakshaSutra account password.
-                Your emergency profile and contacts will
-                remain unchanged.
+                Your emergency profile and contacts will remain unchanged.
               </p>
+
             </div>
 
             <span class="pill active">
@@ -443,8 +861,6 @@
             class="password-form"
             id="changePasswordForm"
           >
-
-            <!-- CURRENT PASSWORD -->
 
             <div class="password-field">
 
@@ -476,8 +892,6 @@
             </div>
 
 
-            <!-- NEW PASSWORD -->
-
             <div class="password-field">
 
               <label for="newPassword">
@@ -508,8 +922,6 @@
 
             </div>
 
-
-            <!-- CONFIRM PASSWORD -->
 
             <div class="password-field">
 
@@ -574,12 +986,14 @@
 
 
         <!-- ================= FEATURES ================= -->
+
         <section
           class="features-grid"
           id="features"
         >
 
           <article class="card feature-card">
+
             <h3>One-Tap & Voice SOS</h3>
 
             <p>
@@ -587,42 +1001,50 @@
               police, ambulance, fire and other emergency
               services.
             </p>
+
           </article>
 
 
           <article class="card feature-card">
+
             <h3>Live Location Sharing</h3>
 
             <p>
               Get your current GPS position and prepare
               a location message for your trusted contacts.
             </p>
+
           </article>
 
 
           <article class="card feature-card">
+
             <h3>AI Risk Detection</h3>
 
             <p>
               Adaptive safety checks can help identify
               potentially unsafe situations.
             </p>
+
           </article>
 
 
           <article class="card feature-card">
+
             <h3>Fake Incoming Calls</h3>
 
             <p>
               Receive a simulated incoming call inside
               RakshaSutra without opening the real dialer.
             </p>
+
           </article>
 
         </section>
 
 
         <!-- ================= ACTIVITY ================= -->
+
         <section class="card activity-card">
 
           <div class="card-head">
@@ -656,12 +1078,407 @@
         </section>
 
       </main>
+
     </div>
 
 
-    <!-- =================================================
-         EMERGENCY CENTER
-    ================================================= -->
+    <!-- ================= SETTINGS MODAL ================= -->
+
+    <div
+      class="settings-modal"
+      id="settingsModal"
+      aria-hidden="true"
+    >
+
+      <div class="settings-card">
+
+        <div class="settings-header">
+
+          <h2 id="settingsTitle">
+            ⚙️ Profile & Settings
+          </h2>
+
+          <button
+            class="settings-close"
+            id="closeSettingsBtn"
+            type="button"
+            aria-label="Close settings"
+          >
+            ✕
+          </button>
+
+        </div>
+
+
+        <!-- PROFILE INFORMATION -->
+
+        <section
+          class="settings-section"
+          id="profileInfoSection"
+        >
+
+          <h3>👤 Profile Information</h3>
+
+          <p>
+            Your RakshaSutra account information.
+          </p>
+
+          <div class="profile-info-grid">
+
+            <div class="profile-info-box">
+              <span>Name</span>
+              <strong id="settingsProfileName">—</strong>
+            </div>
+
+            <div class="profile-info-box">
+              <span>Email</span>
+              <strong id="settingsProfileEmail">—</strong>
+            </div>
+
+            <div class="profile-info-box">
+              <span>Phone</span>
+              <strong id="settingsProfilePhone">—</strong>
+            </div>
+
+            <div class="profile-info-box">
+              <span>Guardian</span>
+              <strong id="settingsGuardianName">—</strong>
+            </div>
+
+            <div class="profile-info-box">
+              <span>Trusted Contact</span>
+              <strong id="settingsTrustedName">—</strong>
+            </div>
+
+            <div class="profile-info-box">
+              <span>Safe Address</span>
+              <strong id="settingsSafeAddress">—</strong>
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- EDIT PROFILE -->
+
+        <section
+          class="settings-section"
+          id="editProfileSection"
+        >
+
+          <h3>✏️ Edit Profile</h3>
+
+          <p>
+            Update your personal and emergency information.
+          </p>
+
+          <form
+            class="edit-profile-form"
+            id="editProfileForm"
+          >
+
+            <div>
+              <label
+                class="settings-label"
+                for="editName"
+              >
+                Full Name
+              </label>
+
+              <input
+                class="settings-input"
+                id="editName"
+                type="text"
+                placeholder="Full name"
+              />
+            </div>
+
+
+            <div>
+              <label
+                class="settings-label"
+                for="editEmail"
+              >
+                Email
+              </label>
+
+              <input
+                class="settings-input"
+                id="editEmail"
+                type="email"
+                placeholder="Email address"
+              />
+            </div>
+
+
+            <div>
+              <label
+                class="settings-label"
+                for="editPhone"
+              >
+                Phone
+              </label>
+
+              <input
+                class="settings-input"
+                id="editPhone"
+                type="tel"
+                placeholder="Phone number"
+              />
+            </div>
+
+
+            <div>
+              <label
+                class="settings-label"
+                for="editGuardianName"
+              >
+                Guardian Name
+              </label>
+
+              <input
+                class="settings-input"
+                id="editGuardianName"
+                type="text"
+                placeholder="Guardian name"
+              />
+            </div>
+
+
+            <div>
+              <label
+                class="settings-label"
+                for="editGuardianPhone"
+              >
+                Guardian Phone
+              </label>
+
+              <input
+                class="settings-input"
+                id="editGuardianPhone"
+                type="tel"
+                placeholder="Guardian phone"
+              />
+            </div>
+
+
+            <div>
+              <label
+                class="settings-label"
+                for="editTrustedName"
+              >
+                Trusted Contact Name
+              </label>
+
+              <input
+                class="settings-input"
+                id="editTrustedName"
+                type="text"
+                placeholder="Trusted contact name"
+              />
+            </div>
+
+
+            <div>
+              <label
+                class="settings-label"
+                for="editTrustedPhone"
+              >
+                Trusted Contact Phone
+              </label>
+
+              <input
+                class="settings-input"
+                id="editTrustedPhone"
+                type="tel"
+                placeholder="Trusted contact phone"
+              />
+            </div>
+
+
+            <div>
+              <label
+                class="settings-label"
+                for="editSafeAddress"
+              >
+                Safe Address
+              </label>
+
+              <input
+                class="settings-input"
+                id="editSafeAddress"
+                type="text"
+                placeholder="Safe address"
+              />
+            </div>
+
+
+            <p
+              class="settings-message"
+              id="editProfileMessage"
+            ></p>
+
+
+            <button
+              class="primary-btn"
+              type="submit"
+            >
+              💾 Save Profile
+            </button>
+
+          </form>
+
+        </section>
+
+
+        <!-- THEME -->
+
+        <section
+          class="settings-section"
+          id="themeSection"
+        >
+
+          <h3>🎨 Theme</h3>
+
+          <p>
+            Choose how RakshaSutra should look.
+          </p>
+
+          <div class="theme-options">
+
+            <button
+              class="theme-option"
+              type="button"
+              data-theme="dark"
+            >
+              🌙
+              <br />
+              Dark
+            </button>
+
+            <button
+              class="theme-option"
+              type="button"
+              data-theme="light"
+            >
+              ☀️
+              <br />
+              Light
+            </button>
+
+            <button
+              class="theme-option"
+              type="button"
+              data-theme="system"
+            >
+              💻
+              <br />
+              System
+            </button>
+
+          </div>
+
+        </section>
+
+
+        <!-- RATE -->
+
+        <section
+          class="settings-section"
+          id="ratingSection"
+        >
+
+          <h3>⭐ Rate RakshaSutra</h3>
+
+          <p>
+            How would you rate your RakshaSutra experience?
+          </p>
+
+          <div
+            class="rating-stars"
+            id="ratingStars"
+          >
+
+            <button
+              class="rating-star"
+              type="button"
+              data-rating="1"
+            >
+              ★
+            </button>
+
+            <button
+              class="rating-star"
+              type="button"
+              data-rating="2"
+            >
+              ★
+            </button>
+
+            <button
+              class="rating-star"
+              type="button"
+              data-rating="3"
+            >
+              ★
+            </button>
+
+            <button
+              class="rating-star"
+              type="button"
+              data-rating="4"
+            >
+              ★
+            </button>
+
+            <button
+              class="rating-star"
+              type="button"
+              data-rating="5"
+            >
+              ★
+            </button>
+
+          </div>
+
+          <p
+            class="settings-message"
+            id="ratingMessage"
+          ></p>
+
+        </section>
+
+
+        <!-- CHANGE PASSWORD -->
+
+        <section
+          class="settings-section"
+          id="settingsPasswordSection"
+        >
+
+          <h3>🔐 Change Password</h3>
+
+          <p>
+            Update your account password.
+          </p>
+
+          <button
+            class="primary-btn"
+            id="openPasswordSectionBtn"
+            type="button"
+          >
+            🔑 Change Password
+          </button>
+
+        </section>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================= EMERGENCY CENTER ================= -->
 
     <div
       class="modal hidden"
@@ -779,9 +1596,7 @@
     </div>
 
 
-    <!-- =================================================
-         FAKE CALL MODAL
-    ================================================= -->
+    <!-- ================= FAKE CALL MODAL ================= -->
 
     <div
       class="modal hidden"
@@ -790,8 +1605,6 @@
     >
 
       <div class="modal-card fake-call-card">
-
-        <!-- INCOMING CALL -->
 
         <div id="incomingCallScreen">
 
@@ -834,8 +1647,6 @@
 
         </div>
 
-
-        <!-- CONNECTED FAKE CALL -->
 
         <div
           id="pickupScreen"
@@ -892,4 +1703,3 @@
 
   </body>
 </html>
-```
